@@ -5,3 +5,4 @@ authors = ["Jimmy Bergström <thekwarf@gmail.com>"]
 license = "MIT"
 
 [dependencies]
+clap = "2.21.1"
