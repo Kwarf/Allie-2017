@@ -1,8 +1,16 @@
 image: liuchong/rustup:stable-musl
 
+cache:
+  paths:
+    - target/
+    - cargo/
+
 stages:
   - build
   - test
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
 
 build:
   stage: build
@@ -13,7 +21,7 @@ build:
   artifacts:
     expire_in: 1h
     paths:
-      - target/release/allie
+      - target/
 
 test:
   stage: test
