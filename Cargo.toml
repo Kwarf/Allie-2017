@@ -1,0 +1,7 @@
+[package]
+name = "Allie"
+version = "0.1.0"
+authors = ["Jimmy Bergström <thekwarf@gmail.com>"]
+license = "MIT"
+
+[dependencies]
