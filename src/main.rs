@@ -4,6 +4,9 @@ use clap::{App, Arg};
 use std::net::SocketAddrV4;
 use std::str::FromStr;
 
+mod client;
+use client::AIClient;
+
 const ARG_IP: &'static str = "ip";
 const ARG_PORT: &'static str = "port";
 
@@ -33,5 +36,20 @@ fn main() {
     if host.is_err() {
         println!("Invalid IP address or port");
         std::process::exit(1);
+    }
+
+    let client = client::tcp::connect(host.unwrap());
+    if client.is_none() {
+        println!("Failed to connect to server");
+        std::process::exit(1);
+    }
+
+    // We're connected, go go go
+    let mut client = client.unwrap();
+    client.identify_as("Allie");
+
+    while client.wait_response() {
+        let response = client.response();
+        print!("{}", response);
     }
 }
