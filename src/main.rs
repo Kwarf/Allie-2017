@@ -1,10 +1,14 @@
 extern crate clap;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 
 use clap::{App, Arg};
 use std::net::SocketAddrV4;
 use std::str::FromStr;
 
 mod client;
+mod protocol;
 use client::AIClient;
 
 const ARG_IP: &'static str = "ip";
