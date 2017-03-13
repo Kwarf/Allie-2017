@@ -21,7 +21,7 @@ build:
   artifacts:
     expire_in: 1h
     paths:
-      - target/
+      - target/x86_64-unknown-linux-musl/release/allie
 
 test:
   stage: test
