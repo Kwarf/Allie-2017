@@ -1,0 +1,25 @@
+image: liuchong/rustup:stable-musl
+
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  tags:
+    - shared
+  script:
+    - cargo build --release
+  artifacts:
+    expire_in: 1h
+    paths:
+      - target/release/allie
+
+test:
+  stage: test
+  tags:
+    - shared
+  script:
+    - cargo test
+  dependencies:
+    - build
