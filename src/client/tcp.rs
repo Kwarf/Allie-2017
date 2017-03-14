@@ -12,7 +12,8 @@ pub struct TcpClient {
 
 impl AIClient for TcpClient {
     fn identify_as(&mut self, name: &str) {
-        self.stream.write_fmt(format_args!("NAME {}\n", name));
+        self.stream.write_fmt(format_args!("NAME {}\n", name))
+            .expect("Failed while sending identification message");
     }
 
     fn wait_response(&mut self) -> bool {
