@@ -8,7 +8,9 @@ use std::net::SocketAddrV4;
 use std::str::FromStr;
 
 mod client;
+mod game;
 mod protocol;
+
 use client::AIClient;
 
 const ARG_IP: &'static str = "ip";
