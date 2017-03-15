@@ -9,10 +9,15 @@ trait HasMap {
     fn map(&self) -> game::Map;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 struct GameState {
     map: Map,
+
+    #[serde(rename = "you")]
     me: Player,
+
+    // Only present in stateupdate messages
+    #[serde(default, rename = "others")]
     enemies: Vec<Player>,
 }
 
@@ -30,7 +35,7 @@ struct Player {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Tile {
+pub enum Tile {
     Floor,
     Wall,
     Door,
@@ -38,8 +43,9 @@ enum Tile {
     SuperPellet,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 struct Map {
+    #[serde(rename = "content", deserialize_with = "json::deserialize_map_content")]
     tiles: Vec<Tile>,
     width: u32,
 }

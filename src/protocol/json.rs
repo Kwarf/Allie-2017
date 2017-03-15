@@ -1,3 +1,5 @@
+use serde;
+use serde::{Deserialize, Deserializer};
 use serde_json;
 use std::str::FromStr;
 
@@ -10,64 +12,29 @@ struct BaseMessage {
 
 #[derive(Deserialize)]
 struct StateUpdateMessage {
-    gamestate: GameState,
+    gamestate: protocol::GameState,
 }
 
-#[derive(Debug, Deserialize)]
-struct Map {
-    content: Vec<String>,
-    height: u32,
-    width: u32,
-    pelletsleft: u32,
-}
-
-impl From<Map> for protocol::Map {
-    fn from(map: Map) -> Self {
-        debug_assert_eq!(map.height * map.width, map.content.iter().map(|x| x.len()).sum::<usize>() as u32);
-
-        let tiles: Vec<protocol::Tile> = map.content
-            .concat()
-            .chars()
-            .map(|x| {
-                match x {
-                    '_' => protocol::Tile::Floor,
-                    '|' => protocol::Tile::Wall,
-                    '-' => protocol::Tile::Door,
-                    '.' => protocol::Tile::Pellet,
-                    'o' => protocol::Tile::SuperPellet,
-                    _ => {
-                        debug_assert!(false, "Encountered unknown tile in map, will default to Wall in release builds");
-                        protocol::Tile::Wall
-                    },
-                }
-            })
-            .collect();
-
-        protocol::Map {
-            tiles: tiles,
-            width: map.width,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct GameState {
-    map: Map,
-    you: protocol::Player,
-
-    // Only received in stateupdate messages
-    #[serde(default)]
-    others: Vec<protocol::Player>,
-}
-
-impl From<GameState> for protocol::GameState {
-    fn from(state: GameState) -> Self {
-        protocol::GameState {
-            map: state.map.into(),
-            me: state.you,
-            enemies: state.others,
-        }
-    }
+pub fn deserialize_map_content<T>(deserializer: T) -> Result<Vec<protocol::Tile>, T::Error>
+    where T: Deserializer {
+    let content: Vec<String> = Deserialize::deserialize(deserializer)?;
+    Ok(content
+        .concat()
+        .chars()
+        .map(|x| {
+            match x {
+                '_' => protocol::Tile::Floor,
+                '|' => protocol::Tile::Wall,
+                '-' => protocol::Tile::Door,
+                '.' => protocol::Tile::Pellet,
+                'o' => protocol::Tile::SuperPellet,
+                _ => {
+                    debug_assert!(false, "Encountered unknown tile in map, will default to Wall in release builds");
+                    protocol::Tile::Wall
+                },
+            }
+        })
+        .collect())
 }
 
 impl FromStr for protocol::Message {
@@ -82,7 +49,7 @@ impl FromStr for protocol::Message {
         // For some reason welcome and stateupdate differ in structure, requiring this ugliness
         match base.unwrap().messagetype.as_ref() {
             "welcome" => {
-                let state: Result<GameState, _> = serde_json::from_str(s);
+                let state: Result<protocol::GameState, _> = serde_json::from_str(s);
                 match state {
                     Ok(x) => Ok(protocol::Message::Welcome { state: x.into() }),
                     Err(e) => Err(protocol::Error::DeserializationError(e))
@@ -115,16 +82,7 @@ mod tests {
         let message = protocol::Message::from_str(EXAMPLE_WELCOME).unwrap();
         match message {
             protocol::Message::Welcome { state } => {
-                assert_eq!(28, state.map.width);
-                assert_eq!(868, state.map.tiles.len());
-
-                // Test tile types, randomly picked locations
-                assert_eq!(protocol::Tile::Floor, state.map.tile_at(12, 10));
-                assert_eq!(protocol::Tile::Wall, state.map.tile_at(0, 30));
-                // assert_eq!(protocol::Tile::Door, state.map.tile_at()); // Example has no door :(, let's just assume it works for now
-                assert_eq!(protocol::Tile::Pellet, state.map.tile_at(26, 1));
-                assert_eq!(protocol::Tile::SuperPellet, state.map.tile_at(26, 3));
-
+                assert_example_map(&state.map);
                 // TODO: Assert correct state
             },
             _ => { assert!(false, "Incorrect type returned") },
@@ -133,19 +91,30 @@ mod tests {
 
     #[test]
     fn can_deserialize_stateupdate() {
-        let base: BaseMessage = serde_json::from_str(EXAMPLE_STATEUPDATE).unwrap();
-        assert_eq!("stateupdate", base.messagetype);
+        let message = protocol::Message::from_str(EXAMPLE_STATEUPDATE).unwrap();
+        match message {
+            protocol::Message::Update { state } => {
+                assert_example_map(&state.map);
 
-        let message: StateUpdateMessage = serde_json::from_str(EXAMPLE_STATEUPDATE).unwrap();
-        assert_eq!(31, message.gamestate.map.content.len());
-        assert_eq!(31, message.gamestate.map.height);
-        assert_eq!(240, message.gamestate.map.pelletsleft);
-        assert_eq!(28, message.gamestate.map.width);
+                assert_eq!(0, state.me.id);
+                assert_eq!(11, state.me.x);
+                assert_eq!(13, state.me.y);
+                assert_eq!(130, state.me.score);
+                assert_eq!(true, state.me.is_dangerous);
+            },
+            _ => { assert!(false, "Incorrect type returned") },
+        }
+    }
 
-        assert_eq!(0, message.gamestate.you.id);
-        assert_eq!(11, message.gamestate.you.x);
-        assert_eq!(13, message.gamestate.you.y);
-        assert_eq!(130, message.gamestate.you.score);
-        assert_eq!(true, message.gamestate.you.is_dangerous);
+    fn assert_example_map(map: &protocol::Map) {
+        assert_eq!(28, map.width);
+        assert_eq!(868, map.tiles.len());
+
+        // Test tile types, randomly picked locations
+        assert_eq!(protocol::Tile::Floor, map.tile_at(12, 10));
+        assert_eq!(protocol::Tile::Wall, map.tile_at(0, 30));
+        // assert_eq!(protocol::Tile::Door, map.tile_at()); // Example has no door :(, let's just assume it works for now
+        assert_eq!(protocol::Tile::Pellet, map.tile_at(26, 1));
+        assert_eq!(protocol::Tile::SuperPellet, map.tile_at(26, 3));
     }
 }
