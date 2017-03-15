@@ -19,11 +19,12 @@ impl AIClient for TcpClient {
     }
 
     fn wait_response(&mut self) -> bool {
+        self.last_response.clear();
         let len = self.reader.read_line(&mut self.last_response).unwrap();
         len > 0
     }
 
-    fn response(&mut self) -> Result<protocol::Message, protocol::Error> {
+    fn response(&self) -> Result<protocol::Message, protocol::Error> {
         protocol::Message::from_str(&self.last_response)
     }
 }

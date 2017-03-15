@@ -6,5 +6,5 @@ pub trait AIClient {
     fn identify_as(&mut self, name: &str);
 
     fn wait_response(&mut self) -> bool;
-    fn response(&mut self) -> Result<protocol::Message, protocol::Error>;
+    fn response(&self) -> Result<protocol::Message, protocol::Error>;
 }
