@@ -21,6 +21,35 @@ struct Map {
     pelletsleft: u32,
 }
 
+impl From<Map> for protocol::Map {
+    fn from(map: Map) -> Self {
+        debug_assert_eq!(map.height * map.width, map.content.iter().map(|x| x.len()).sum::<usize>() as u32);
+
+        let tiles: Vec<protocol::Tile> = map.content
+            .concat()
+            .chars()
+            .map(|x| {
+                match x {
+                    '_' => protocol::Tile::Floor,
+                    '|' => protocol::Tile::Wall,
+                    '-' => protocol::Tile::Door,
+                    '.' => protocol::Tile::Pellet,
+                    'o' => protocol::Tile::SuperPellet,
+                    _ => {
+                        debug_assert!(false, "Encountered unknown tile in map, will default to Wall in release builds");
+                        protocol::Tile::Wall
+                    },
+                }
+            })
+            .collect();
+
+        protocol::Map {
+            tiles: tiles,
+            width: map.width,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct GameState {
     map: Map,
@@ -33,7 +62,11 @@ struct GameState {
 
 impl From<GameState> for protocol::GameState {
     fn from(state: GameState) -> Self {
-        protocol::GameState
+        protocol::GameState {
+            map: state.map.into(),
+            me: state.you,
+            enemies: state.others,
+        }
     }
 }
 
@@ -81,7 +114,17 @@ mod tests {
     fn can_deserialize_welcome() {
         let message = protocol::Message::from_str(EXAMPLE_WELCOME).unwrap();
         match message {
-            protocol::Message::Welcome {..} => {
+            protocol::Message::Welcome { state } => {
+                assert_eq!(28, state.map.width);
+                assert_eq!(868, state.map.tiles.len());
+
+                // Test tile types, randomly picked locations
+                assert_eq!(protocol::Tile::Floor, state.map.tile_at(12, 10));
+                assert_eq!(protocol::Tile::Wall, state.map.tile_at(0, 30));
+                // assert_eq!(protocol::Tile::Door, state.map.tile_at()); // Example has no door :(, let's just assume it works for now
+                assert_eq!(protocol::Tile::Pellet, state.map.tile_at(26, 1));
+                assert_eq!(protocol::Tile::SuperPellet, state.map.tile_at(26, 3));
+
                 // TODO: Assert correct state
             },
             _ => { assert!(false, "Incorrect type returned") },
