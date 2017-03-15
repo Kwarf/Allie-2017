@@ -13,6 +13,7 @@ mod game;
 mod protocol;
 
 use client::AIClient;
+use protocol::Message;
 
 const ARG_IP: &'static str = "ip";
 const ARG_PORT: &'static str = "port";
@@ -41,7 +42,7 @@ fn main() {
     };
 
     if host.is_err() {
-        println!("Invalid IP address or port");
+        println!("Invalid IP address or port ({})", host.err().unwrap());
         std::process::exit(1);
     }
 
@@ -57,6 +58,19 @@ fn main() {
 
     while client.wait_response() {
         let response = client.response();
-        print!("{:?}", response);
+        if response.is_err() {
+            println!("Response error: {:?}", response.err().unwrap());
+            continue;
+        }
+
+        match response.unwrap() {
+            Message::Welcome {..} => {
+                println!("Received welcome message");
+            }
+            Message::Update {..} => {
+                println!("Received stateupdate message");
+            }
+            _ => {}
+        }
     }
 }
