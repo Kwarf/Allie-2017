@@ -9,12 +9,6 @@ struct BaseMessage {
 }
 
 #[derive(Deserialize)]
-struct WelcomeMessage {
-    map: Map,
-    you: Entity,
-}
-
-#[derive(Deserialize)]
 struct StateUpdateMessage {
     gamestate: GameState,
 }
@@ -24,6 +18,7 @@ struct Entity {
     id: u32,
     x: u32,
     y: u32,
+
     // These fields are not present in the welcome message, default them in that case
     #[serde(default)]
     score: u32,
@@ -42,16 +37,48 @@ struct Map {
 #[derive(Debug, Deserialize)]
 struct GameState {
     map: Map,
-    others: Vec<Entity>,
     you: Entity,
+
+    // Only received in stateupdate messages
+    #[serde(default)]
+    others: Vec<Entity>,
+}
+
+impl From<GameState> for protocol::GameState {
+    fn from(state: GameState) -> Self {
+        protocol::GameState
+    }
 }
 
 impl FromStr for protocol::Message {
     type Err = protocol::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            _ => Err(protocol::Error::DeserializationError),
+        let base: Result<BaseMessage, _> = serde_json::from_str(s);
+        if base.is_err() {
+            return Err(protocol::Error::MissingGamestate);
+        }
+
+        // For some reason welcome and stateupdate differ in structure, requiring this ugliness
+        match base.unwrap().messagetype.as_ref() {
+            "welcome" => {
+                let state: Result<GameState, _> = serde_json::from_str(s);
+                match state {
+                    Ok(x) => Ok(protocol::Message::Welcome { state: x.into() }),
+                    Err(e) => Err(protocol::Error::DeserializationError(e))
+                }
+            },
+            "stateupdate" => {
+                let state: Result<StateUpdateMessage, _> = serde_json::from_str(s);
+                match state {
+                    Ok(x) => Ok(protocol::Message::Update { state: x.gamestate.into() }),
+                    Err(e) => Err(protocol::Error::DeserializationError(e))
+                }
+            },
+            "dead" => Ok(protocol::Message::Dead),
+            "endofround" => Ok(protocol::Message::EndOfRound),
+            "startofround" => Ok(protocol::Message::StartOfRound),
+            _ => Err(protocol::Error::UnknownMessageType),
         }
     }
 }
@@ -65,20 +92,13 @@ mod tests {
 
     #[test]
     fn can_deserialize_welcome() {
-        let base: BaseMessage = serde_json::from_str(EXAMPLE_WELCOME).unwrap();
-        assert_eq!("welcome", base.messagetype);
-
-        let message: WelcomeMessage = serde_json::from_str(EXAMPLE_WELCOME).unwrap();
-        assert_eq!(31, message.map.content.len());
-        assert_eq!(31, message.map.height);
-        assert_eq!(240, message.map.pelletsleft);
-        assert_eq!(28, message.map.width);
-
-        assert_eq!(0, message.you.id);
-        assert_eq!(11, message.you.x);
-        assert_eq!(13, message.you.y);
-        assert_eq!(0, message.you.score);
-        assert_eq!(false, message.you.isdangerous);
+        let message = protocol::Message::from_str(EXAMPLE_WELCOME).unwrap();
+        match message {
+            protocol::Message::Welcome {..} => {
+                // TODO: Assert correct state
+            },
+            _ => { assert!(false, "Incorrect type returned") },
+        }
     }
 
     #[test]
