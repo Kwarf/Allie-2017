@@ -14,19 +14,6 @@ struct StateUpdateMessage {
 }
 
 #[derive(Debug, Deserialize)]
-struct Entity {
-    id: u32,
-    x: u32,
-    y: u32,
-
-    // These fields are not present in the welcome message, default them in that case
-    #[serde(default)]
-    score: u32,
-    #[serde(default)]
-    isdangerous: bool,
-}
-
-#[derive(Debug, Deserialize)]
 struct Map {
     content: Vec<String>,
     height: u32,
@@ -37,11 +24,11 @@ struct Map {
 #[derive(Debug, Deserialize)]
 struct GameState {
     map: Map,
-    you: Entity,
+    you: protocol::Player,
 
     // Only received in stateupdate messages
     #[serde(default)]
-    others: Vec<Entity>,
+    others: Vec<protocol::Player>,
 }
 
 impl From<GameState> for protocol::GameState {
@@ -116,6 +103,6 @@ mod tests {
         assert_eq!(11, message.gamestate.you.x);
         assert_eq!(13, message.gamestate.you.y);
         assert_eq!(130, message.gamestate.you.score);
-        assert_eq!(true, message.gamestate.you.isdangerous);
+        assert_eq!(true, message.gamestate.you.is_dangerous);
     }
 }

@@ -17,10 +17,16 @@ struct Position {
     y: i32,
 }
 
+#[derive(Debug, Deserialize)]
 struct Player {
-    id: i32,
-    position: Position,
-    score: i32,
+    id: u32,
+    x: u32,
+    y: u32,
+
+    // These fields are not present in the welcome message, default them in that case
+    #[serde(default)]
+    score: u32,
+    #[serde(default, rename = "isdangerous")]
     is_dangerous: bool,
 }
 
