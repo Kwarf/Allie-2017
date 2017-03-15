@@ -56,6 +56,6 @@ fn main() {
 
     while client.wait_response() {
         let response = client.response();
-        print!("{}", response);
+        print!("{:?}", response);
     }
 }

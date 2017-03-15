@@ -1,7 +1,9 @@
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpStream, ToSocketAddrs};
+use std::str::FromStr;
 
 use client::AIClient;
+use protocol;
 
 pub struct TcpClient {
     stream: TcpStream,
@@ -21,8 +23,8 @@ impl AIClient for TcpClient {
         len > 0
     }
 
-    fn response(&self) -> &str {
-        &self.last_response
+    fn response(&mut self) -> Result<protocol::Message, protocol::Error> {
+        protocol::Message::from_str(&self.last_response)
     }
 }
 

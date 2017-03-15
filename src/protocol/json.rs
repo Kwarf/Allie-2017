@@ -1,4 +1,7 @@
 use serde_json;
+use std::str::FromStr;
+
+use protocol;
 
 #[derive(Debug, Deserialize)]
 struct BaseMessage {
@@ -41,6 +44,16 @@ struct GameState {
     map: Map,
     others: Vec<Entity>,
     you: Entity,
+}
+
+impl FromStr for protocol::Message {
+    type Err = protocol::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            _ => Err(protocol::Error::DeserializationError),
+        }
+    }
 }
 
 #[cfg(test)]
