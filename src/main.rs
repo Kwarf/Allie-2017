@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate clap;
 extern crate serde;
 #[macro_use]
@@ -20,9 +21,9 @@ const ARG_PORT: &'static str = "port";
 
 fn main() {
     let arguments = App::new("Allie")
-        .version("0.1.0")
         .about("Bot for the AI competition at The Gathering 2017")
-        .author("Jimmy 'Kwarf' Bergström <thekwarf@gmail.com>")
+        .version(crate_version!())
+        .author(crate_authors!())
         .arg(Arg::with_name(ARG_IP)
             .long("ip")
             .value_name("IP")

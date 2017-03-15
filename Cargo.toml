@@ -1,7 +1,7 @@
 [package]
 name = "allie"
 version = "0.1.0"
-authors = ["Jimmy Bergström <thekwarf@gmail.com>"]
+authors = ["Jimmy 'Kwarf' Bergström <thekwarf@gmail.com>"]
 license = "MIT"
 
 [dependencies]
