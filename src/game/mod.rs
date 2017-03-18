@@ -1,5 +1,6 @@
 use serde_json;
 
+use common;
 use protocol::Map;
 use std;
 use traits::HasDimensions;
@@ -39,6 +40,7 @@ impl TileType {
 #[derive(Default)]
 pub struct MapInformation {
     intersections: Vec<Position>,
+    corners: Vec<Position>,
 }
 
 impl MapInformation {
@@ -52,12 +54,16 @@ impl MapInformation {
                     continue;
                 }
 
-                let walkable_neighbour_count = map.neighbours(x, y)
-                    .iter()
+                let walkable_neighbours: Vec<(common::Direction, TileType)> = map.neighbours(x, y)
+                    .into_iter()
                     .filter(|x| x.1.is_walkable())
-                    .count();
-                if walkable_neighbour_count > 2 {
+                    .collect();
+
+                if walkable_neighbours.len() > 2 {
                     map_information.intersections.push(Position::new(x, y));
+                }
+                else if walkable_neighbours.len() == 2 && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0) {
+                    map_information.corners.push(Position::new(x, y));
                 }
             }
         }
@@ -107,6 +113,7 @@ mod tests {
         let map: Map = serde_json::from_str(SIMPLE_INTERSECTION).unwrap();
         let info = MapInformation::from_map(&map);
         assert_eq!(1, info.intersections.len());
+        assert_eq!(0, info.corners.len());
         assert_eq!(3, info.intersections[0].x);
         assert_eq!(3, info.intersections[0].y);
     }
@@ -130,7 +137,52 @@ mod tests {
         let map: Map = serde_json::from_str(THREE_WAY_INTERSECTION).unwrap();
         let info = MapInformation::from_map(&map);
         assert_eq!(1, info.intersections.len());
+        assert_eq!(0, info.corners.len());
         assert_eq!(3, info.intersections[0].x);
         assert_eq!(2, info.intersections[0].y);
+    }
+
+    #[test]
+    fn can_find_simple_turn() {
+        const TURN: &'static str = r#"
+{
+    "content": [
+        "||||",
+        "||_|",
+        "|__|",
+        "||||"
+    ],
+    "height": 4,
+    "pelletsleft": 0,
+    "width": 4
+}"#;
+        let map: Map = serde_json::from_str(TURN).unwrap();
+        let info = MapInformation::from_map(&map);
+        assert_eq!(0, info.intersections.len());
+        assert_eq!(1, info.corners.len());
+        assert_eq!(2, info.corners[0].x);
+        assert_eq!(2, info.corners[0].y);
+    }
+
+    #[test]
+    fn should_not_find_corners_in_straight_paths() {
+        const STRAIGHT: &'static str = r#"
+{
+    "content": [
+        "||||",
+        "||_|",
+        "||_|",
+        "||_|",
+        "||_|",
+        "||||"
+    ],
+    "height": 6,
+    "pelletsleft": 0,
+    "width": 4
+}"#;
+        let map: Map = serde_json::from_str(STRAIGHT).unwrap();
+        let info = MapInformation::from_map(&map);
+        assert_eq!(0, info.intersections.len());
+        assert_eq!(0, info.corners.len());
     }
 }
