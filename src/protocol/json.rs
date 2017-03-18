@@ -3,6 +3,7 @@ use serde::{Deserialize, Deserializer};
 use serde_json;
 use std::str::FromStr;
 
+use game;
 use protocol;
 
 #[derive(Debug, Deserialize)]
@@ -15,7 +16,7 @@ struct StateUpdateMessage {
     gamestate: protocol::GameState,
 }
 
-pub fn deserialize_map_content<T>(deserializer: T) -> Result<Vec<protocol::Tile>, T::Error>
+pub fn deserialize_map_content<T>(deserializer: T) -> Result<Vec<game::TileType>, T::Error>
     where T: Deserializer {
     let content: Vec<String> = Deserialize::deserialize(deserializer)?;
     Ok(content
@@ -23,14 +24,14 @@ pub fn deserialize_map_content<T>(deserializer: T) -> Result<Vec<protocol::Tile>
         .chars()
         .map(|x| {
             match x {
-                '_' => protocol::Tile::Floor,
-                '|' => protocol::Tile::Wall,
-                '-' => protocol::Tile::Door,
-                '.' => protocol::Tile::Pellet,
-                'o' => protocol::Tile::SuperPellet,
+                '_' => game::TileType::Floor,
+                '|' => game::TileType::Wall,
+                '-' => game::TileType::Door,
+                '.' => game::TileType::Pellet,
+                'o' => game::TileType::SuperPellet,
                 _ => {
                     debug_assert!(false, "Encountered unknown tile in map, will default to Wall in release builds");
-                    protocol::Tile::Wall
+                    game::TileType::Wall
                 },
             }
         })
@@ -111,10 +112,10 @@ mod tests {
         assert_eq!(868, map.tiles.len());
 
         // Test tile types, randomly picked locations
-        assert_eq!(protocol::Tile::Floor, map.tile_at(12, 10));
-        assert_eq!(protocol::Tile::Wall, map.tile_at(0, 30));
-        // assert_eq!(protocol::Tile::Door, map.tile_at()); // Example has no door :(, let's just assume it works for now
-        assert_eq!(protocol::Tile::Pellet, map.tile_at(26, 1));
-        assert_eq!(protocol::Tile::SuperPellet, map.tile_at(26, 3));
+        assert_eq!(game::TileType::Floor, map.tile_at(12, 10));
+        assert_eq!(game::TileType::Wall, map.tile_at(0, 30));
+        // assert_eq!(game::TileType::Door, map.tile_at()); // Example has no door :(, let's just assume it works for now
+        assert_eq!(game::TileType::Pellet, map.tile_at(26, 1));
+        assert_eq!(game::TileType::SuperPellet, map.tile_at(26, 3));
     }
 }

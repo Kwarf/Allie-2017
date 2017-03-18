@@ -10,8 +10,10 @@ use std::net::SocketAddrV4;
 use std::str::FromStr;
 
 mod client;
+mod common;
 mod game;
 mod protocol;
+mod traits;
 
 use client::AIClient;
 use protocol::Message;

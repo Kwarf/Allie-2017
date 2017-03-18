@@ -3,11 +3,10 @@ use serde_json;
 mod json;
 mod message_type;
 
+use common;
 use game;
-
-trait HasMap {
-    fn map(&self) -> game::Map;
-}
+use traits;
+use traits::HasDimensions;
 
 #[derive(Debug, Deserialize)]
 struct GameState {
@@ -34,25 +33,42 @@ struct Player {
     is_dangerous: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Tile {
-    Floor,
-    Wall,
-    Door,
-    Pellet,
-    SuperPellet,
-}
-
 #[derive(Debug, Deserialize)]
-struct Map {
+pub struct Map {
     #[serde(rename = "content", deserialize_with = "json::deserialize_map_content")]
-    tiles: Vec<Tile>,
+    tiles: Vec<game::TileType>,
     width: u32,
 }
 
 impl Map {
-    fn tile_at(&self, x: u32, y: u32) -> Tile {
+    pub fn tile_at(&self, x: u32, y: u32) -> game::TileType {
         self.tiles[(self.width * y + x) as usize]
+    }
+
+    pub fn neighbours(&self, x: u32, y: u32) -> Vec<(common::Direction, game::TileType)> {
+        let mut neighbours = Vec::new();
+        if x > 0 {
+            neighbours.push((common::Direction::Left, self.tile_at(x - 1, y)));
+        }
+        if x < self.width - 1 {
+            neighbours.push((common::Direction::Right, self.tile_at(x + 1, y)));
+        }
+        if y > 0 {
+            neighbours.push((common::Direction::Up, self.tile_at(x, y - 1)));
+        }
+        if y < self.height() - 1 {
+            neighbours.push((common::Direction::Down, self.tile_at(x, y + 1)));
+        }
+        neighbours
+    }
+}
+
+impl traits::HasDimensions for Map {
+    fn width(&self) -> u32 {
+        self.width
+    }
+    fn height(&self) -> u32 {
+        self.tiles.len() as u32 / self.width
     }
 }
 
@@ -70,16 +86,4 @@ pub enum Error {
     MissingGamestate,
     UnknownMessageType,
     DeserializationError(serde_json::error::Error),
-}
-
-#[cfg(test)]
-mod tests {
-    use std;
-    use super::*;
-
-    #[test]
-    fn should_have_optimal_tile_enum_size() {
-        // Make sure that tiles are 1B, as we store and index lots of them
-        assert_eq!(1, std::mem::size_of::<Tile>());
-    }
 }
