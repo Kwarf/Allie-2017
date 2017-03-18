@@ -72,8 +72,10 @@ mod tests {
 
     #[test]
     fn should_be_able_to_determine_walkable_tiles() {
-        assert!(TileType::Floor.is_walkable());
+        // Walls are not walkable..
         assert!(!TileType::Wall.is_walkable());
+        // Everything else is
+        assert!(TileType::Floor.is_walkable());
         assert!(TileType::Door.is_walkable());
         assert!(TileType::Pellet.is_walkable());
         assert!(TileType::SuperPellet.is_walkable());
@@ -105,5 +107,30 @@ mod tests {
         let map: Map = serde_json::from_str(SIMPLE_INTERSECTION).unwrap();
         let info = MapInformation::from_map(&map);
         assert_eq!(1, info.intersections.len());
+        assert_eq!(3, info.intersections[0].x);
+        assert_eq!(3, info.intersections[0].y);
+    }
+
+    #[test]
+    fn can_find_simple_three_way_intersections() {
+        const THREE_WAY_INTERSECTION: &'static str = r#"
+{
+    "content": [
+        "|||||",
+        "|||_|",
+        "|___|",
+        "|||_|",
+        "|||_|",
+        "|||||"
+    ],
+    "height": 6,
+    "pelletsleft": 0,
+    "width": 5
+}"#;
+        let map: Map = serde_json::from_str(THREE_WAY_INTERSECTION).unwrap();
+        let info = MapInformation::from_map(&map);
+        assert_eq!(1, info.intersections.len());
+        assert_eq!(3, info.intersections[0].x);
+        assert_eq!(2, info.intersections[0].y);
     }
 }
