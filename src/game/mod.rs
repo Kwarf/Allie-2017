@@ -1,7 +1,7 @@
 use serde_json;
 
 use common;
-use protocol::Map;
+use protocol::json;
 use std;
 use traits::HasDimensions;
 
@@ -16,6 +16,11 @@ impl Position {
             x: x,
             y: y,
         }
+    }
+
+    fn manhattan_distance_to(&self, other: &Position) -> u32 {
+        // So much typecasting that I don't even
+        ((self.x as i32 - other.x as i32).abs() + (self.y as i32 - other.y as i32).abs()) as u32
     }
 }
 
@@ -34,6 +39,50 @@ impl TileType {
             TileType::Floor | TileType::Door | TileType::Pellet | TileType::SuperPellet => true,
             _ => false,
         }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Map {
+    #[serde(rename = "content", deserialize_with = "json::deserialize_map_content")]
+    tiles: Vec<TileType>,
+    width: u32,
+}
+
+impl Map {
+    #[cfg(debug_assertions)]
+    pub fn tilecount(&self) -> usize {
+        self.tiles.len()
+    }
+
+    pub fn tile_at(&self, x: u32, y: u32) -> TileType {
+        self.tiles[(self.width * y + x) as usize]
+    }
+
+    pub fn neighbours(&self, x: u32, y: u32) -> Vec<(common::Direction, TileType)> {
+        let mut neighbours = Vec::new();
+        if x > 0 {
+            neighbours.push((common::Direction::Left, self.tile_at(x - 1, y)));
+        }
+        if x < self.width - 1 {
+            neighbours.push((common::Direction::Right, self.tile_at(x + 1, y)));
+        }
+        if y > 0 {
+            neighbours.push((common::Direction::Up, self.tile_at(x, y - 1)));
+        }
+        if y < self.height() - 1 {
+            neighbours.push((common::Direction::Down, self.tile_at(x, y + 1)));
+        }
+        neighbours
+    }
+}
+
+impl HasDimensions for Map {
+    fn width(&self) -> u32 {
+        self.width
+    }
+    fn height(&self) -> u32 {
+        self.tiles.len() as u32 / self.width
     }
 }
 
@@ -184,5 +233,14 @@ mod tests {
         let info = MapInformation::from_map(&map);
         assert_eq!(0, info.intersections.len());
         assert_eq!(0, info.corners.len());
+    }
+
+    #[test]
+    fn can_calculate_manhattan_distance() {
+        assert_eq!(50, Position::new(25, 25).manhattan_distance_to(&Position::new(0, 0)));
+
+        assert_eq!(10, Position::new(10, 12).manhattan_distance_to(&Position::new(14, 18)));
+        assert_eq!(10, Position::new(14, 18).manhattan_distance_to(&Position::new(10, 12)));
+        assert_eq!(10, Position::new(18, 14).manhattan_distance_to(&Position::new(12, 10)));
     }
 }

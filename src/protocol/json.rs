@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use game;
 use protocol;
+use traits::HasDimensions;
 
 #[derive(Debug, Deserialize)]
 struct BaseMessage {
@@ -107,9 +108,9 @@ mod tests {
         }
     }
 
-    fn assert_example_map(map: &protocol::Map) {
-        assert_eq!(28, map.width);
-        assert_eq!(868, map.tiles.len());
+    fn assert_example_map(map: &game::Map) {
+        assert_eq!(28, map.width());
+        assert_eq!(868, map.tilecount());
 
         // Test tile types, randomly picked locations
         assert_eq!(game::TileType::Floor, map.tile_at(12, 10));
