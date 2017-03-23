@@ -1,1 +1,4 @@
 target
+
+benchmarker/*.txt
+benchmarker/rand0m.py
