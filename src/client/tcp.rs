@@ -3,6 +3,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 use std::str::FromStr;
 
 use client::AIClient;
+use common;
 use protocol;
 
 pub struct TcpClient {
@@ -26,6 +27,11 @@ impl AIClient for TcpClient {
 
     fn response(&self) -> Result<protocol::Message, protocol::Error> {
         protocol::Message::from_str(&self.last_response)
+    }
+
+    fn send_action(&mut self, direction: common::Direction) {
+        self.stream.write_fmt(format_args!("{}\n", direction))
+            .expect("Failed while sending action message");
     }
 }
 

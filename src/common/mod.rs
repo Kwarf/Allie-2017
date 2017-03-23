@@ -1,9 +1,22 @@
+use std::fmt;
+
 #[derive(PartialEq)]
 pub enum Direction {
     Up,
     Down,
     Left,
     Right,
+}
+
+impl fmt::Display for Direction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match *self {
+            Direction::Up => "UP",
+            Direction::Down => "DOWN",
+            Direction::Left => "LEFT",
+            Direction::Right => "RIGHT",
+        })
+    }
 }
 
 impl Direction {
