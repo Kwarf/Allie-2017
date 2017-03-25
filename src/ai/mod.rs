@@ -27,4 +27,8 @@ impl Bot {
             _ => panic!("Invalid random response"),
         }
     }
+
+    pub fn reset(&mut self) {
+        // TODO: Reset state and prepare for a new turn
+    }
 }

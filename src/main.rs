@@ -66,6 +66,7 @@ fn main() {
 
     while client.wait_response() {
         let response = client.response();
+
         if response.is_err() {
             println!("Response error: {:?}", response.err().unwrap());
             continue;
@@ -76,13 +77,20 @@ fn main() {
                 println!("Received welcome message, initializing bot");
                 bot = Some(ai::Bot::from_game_state(state));
             }
+            Message::StartOfRound => {
+                if let Some(ref mut x) = bot {
+                    x.reset();
+                }
+            }
             Message::Update { state } => {
                 match bot {
                     Some(ref mut x) => client.send_action(x.determine_action(state)),
                     None => debug_assert!(false, "Received stateupdate message while not having an initialized AI"),
                 }
             }
-            _ => {}
+            Message::Dead | Message::EndOfRound => {
+                // Nothing special to do here
+            }
         }
     }
 }
