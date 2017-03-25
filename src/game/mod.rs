@@ -1,8 +1,5 @@
-use serde_json;
-
 use common;
 use protocol::json;
-use std;
 use traits::HasDimensions;
 
 pub struct Position {
@@ -93,7 +90,7 @@ pub struct MapInformation {
 }
 
 impl MapInformation {
-    fn from_map(map: &Map) -> MapInformation {
+    pub fn from_map(map: &Map) -> MapInformation {
         let mut map_information = MapInformation::default();
 
         // Find any intersections
@@ -124,6 +121,8 @@ impl MapInformation {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json;
+    use std;
 
     #[test]
     fn should_be_able_to_determine_walkable_tiles() {

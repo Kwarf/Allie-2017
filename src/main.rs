@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate clap;
+extern crate pathfinding;
 extern crate rand;
 extern crate serde;
 #[macro_use]
@@ -7,10 +8,10 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use clap::{App, Arg};
-use rand::Rng;
 use std::net::SocketAddrV4;
 use std::str::FromStr;
 
+mod ai;
 mod client;
 mod common;
 mod game;
@@ -18,7 +19,6 @@ mod protocol;
 mod traits;
 
 use client::AIClient;
-use common::Direction;
 use protocol::Message;
 
 const ARG_IP: &'static str = "ip";
@@ -62,7 +62,7 @@ fn main() {
     let mut client = client.unwrap();
     client.identify_as("Allie");
 
-    let mut rng = rand::thread_rng();
+    let mut bot: Option<ai::Bot> = None;
 
     while client.wait_response() {
         let response = client.response();
@@ -72,19 +72,15 @@ fn main() {
         }
 
         match response.unwrap() {
-            Message::Welcome {..} => {
-                println!("Received welcome message");
+            Message::Welcome { state } => {
+                println!("Received welcome message, initializing bot");
+                bot = Some(ai::Bot::from_game_state(state));
             }
-            Message::Update {..} => {
-                println!("Received stateupdate message");
-
-                client.send_action(match rng.gen_range(0, 4) {
-                    0 => Direction::Up,
-                    1 => Direction::Down,
-                    2 => Direction::Left,
-                    3 => Direction::Right,
-                    _ => panic!("Invalid random response"),
-                });
+            Message::Update { state } => {
+                match bot {
+                    Some(ref mut x) => client.send_action(x.determine_action(state)),
+                    None => debug_assert!(false, "Received stateupdate message while not having an initialized AI"),
+                }
             }
             _ => {}
         }

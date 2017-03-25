@@ -3,14 +3,11 @@ use serde_json;
 pub mod json;
 mod message_type;
 
-use common;
 use game;
-use traits;
-use traits::HasDimensions;
 
 #[derive(Debug, Deserialize)]
-struct GameState {
-    map: game::Map,
+pub struct GameState {
+    pub map: game::Map,
 
     #[serde(rename = "you")]
     me: Player,

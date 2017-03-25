@@ -13,7 +13,7 @@ RANDOM_PATH = './rand0m.py'
 
 RESULT_RE = re.compile(r'^name:(?P<name>[^;]+);wins:(?P<wins>\d+);score:(?P<score>\d+)$')
 
-ROUNDS = 100
+ROUNDS = 4
 
 Score = collections.namedtuple('Score', ['wins', 'score'])
 
