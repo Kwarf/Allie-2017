@@ -3,14 +3,16 @@ use serde_json;
 pub mod json;
 mod message_type;
 
+use common::Position;
 use game;
+use traits::HasPosition;
 
 #[derive(Debug, Deserialize)]
 pub struct GameState {
     pub map: game::Map,
 
     #[serde(rename = "you")]
-    me: Player,
+    pub me: Player,
 
     // Only present in stateupdate messages
     #[serde(default, rename = "others")]
@@ -18,7 +20,7 @@ pub struct GameState {
 }
 
 #[derive(Debug, Deserialize)]
-struct Player {
+pub struct Player {
     id: u32,
     x: u32,
     y: u32,
@@ -28,6 +30,15 @@ struct Player {
     score: u32,
     #[serde(default, rename = "isdangerous")]
     is_dangerous: bool,
+}
+
+impl HasPosition for Player {
+    fn position(&self) -> Position {
+        Position {
+            x: self.x,
+            y: self.y,
+        }
+    }
 }
 
 #[derive(Debug)]

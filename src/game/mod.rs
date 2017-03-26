@@ -1,25 +1,8 @@
+use std;
+
 use common;
 use protocol::json;
 use traits::HasDimensions;
-
-pub struct Position {
-    x: u32,
-    y: u32,
-}
-
-impl Position {
-    fn new(x: u32, y: u32) -> Position {
-        Position {
-            x: x,
-            y: y,
-        }
-    }
-
-    fn manhattan_distance_to(&self, other: &Position) -> u32 {
-        // So much typecasting that I don't even
-        ((self.x as i32 - other.x as i32).abs() + (self.y as i32 - other.y as i32).abs()) as u32
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TileType {
@@ -31,15 +14,23 @@ pub enum TileType {
 }
 
 impl TileType {
-    fn is_walkable(&self) -> bool {
+    pub fn is_walkable(&self) -> bool {
         match *self {
             TileType::Floor | TileType::Door | TileType::Pellet | TileType::SuperPellet => true,
             _ => false,
         }
     }
+
+    pub fn is_pellet(&self) -> bool {
+        match *self {
+            TileType::Pellet | TileType::SuperPellet => true,
+            _ => false,
+        }
+    }
 }
 
-#[derive(Debug, Deserialize)]
+// Should really not be Clone
+#[derive(Clone, Debug, Deserialize)]
 pub struct Map {
     #[serde(rename = "content", deserialize_with = "json::deserialize_map_content")]
     tiles: Vec<TileType>,
@@ -72,6 +63,12 @@ impl Map {
         }
         neighbours
     }
+
+    pub fn points_in_path(&self, path: &Vec<common::Position>) -> usize {
+        path.iter()
+            .filter(|pos| self.tile_at(pos.x, pos.y).is_pellet())
+            .count()
+    }
 }
 
 impl HasDimensions for Map {
@@ -85,8 +82,8 @@ impl HasDimensions for Map {
 
 #[derive(Default)]
 pub struct MapInformation {
-    intersections: Vec<Position>,
-    corners: Vec<Position>,
+    intersections: Vec<common::Position>,
+    corners: Vec<common::Position>,
 }
 
 impl MapInformation {
@@ -106,15 +103,23 @@ impl MapInformation {
                     .collect();
 
                 if walkable_neighbours.len() > 2 {
-                    map_information.intersections.push(Position::new(x, y));
+                    map_information.intersections.push(common::Position::new(x, y));
                 }
                 else if walkable_neighbours.len() == 2 && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0) {
-                    map_information.corners.push(Position::new(x, y));
+                    map_information.corners.push(common::Position::new(x, y));
                 }
             }
         }
 
         map_information
+    }
+
+    pub fn turning_points<'a>(&'a self) -> std::iter::Chain<std::slice::Iter<'a, common::Position>, std::slice::Iter<'a, common::Position>> {
+        // Return a chain of both intersecions and corners,
+        // i.e. all positions where turning is possible
+        self.intersections
+            .iter()
+            .chain(self.corners.iter())
     }
 }
 
@@ -232,14 +237,5 @@ mod tests {
         let info = MapInformation::from_map(&map);
         assert_eq!(0, info.intersections.len());
         assert_eq!(0, info.corners.len());
-    }
-
-    #[test]
-    fn can_calculate_manhattan_distance() {
-        assert_eq!(50, Position::new(25, 25).manhattan_distance_to(&Position::new(0, 0)));
-
-        assert_eq!(10, Position::new(10, 12).manhattan_distance_to(&Position::new(14, 18)));
-        assert_eq!(10, Position::new(14, 18).manhattan_distance_to(&Position::new(10, 12)));
-        assert_eq!(10, Position::new(18, 14).manhattan_distance_to(&Position::new(12, 10)));
     }
 }

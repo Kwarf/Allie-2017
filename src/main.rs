@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate clap;
 extern crate pathfinding;
-extern crate rand;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -84,7 +83,11 @@ fn main() {
             }
             Message::Update { state } => {
                 match bot {
-                    Some(ref mut x) => client.send_action(x.determine_action(state)),
+                    Some(ref mut x) => {
+                        let action = x.determine_action(state);
+                        println!("Walking: {}", action);
+                        client.send_action(action);
+                    },
                     None => debug_assert!(false, "Received stateupdate message while not having an initialized AI"),
                 }
             }

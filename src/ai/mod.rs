@@ -1,34 +1,74 @@
-use rand;
-use rand::Rng;
+use std::rc::Rc;
 
-use common::Direction;
+mod pathfinder;
+
+use common::{Direction, Position};
 use game;
 use protocol;
+use traits::HasPosition;
 
 pub struct Bot {
-    map_information: game::MapInformation,
-    rng: rand::ThreadRng,
+    map_information: Rc<game::MapInformation>, // See PathNode in pathfinder
+
+    current_path: Vec<Position>,
 }
 
 impl Bot {
     pub fn from_game_state(state: protocol::GameState) -> Bot {
         Bot {
-            map_information: game::MapInformation::from_map(&state.map),
-            rng: rand::thread_rng(),
+            map_information: Rc::new(game::MapInformation::from_map(&state.map)),
+
+            current_path: Vec::new(),
         }
     }
 
     pub fn determine_action(&mut self, state: protocol::GameState) -> Direction {
-        match self.rng.gen_range(0, 4) {
-            0 => Direction::Up,
-            1 => Direction::Down,
-            2 => Direction::Left,
-            3 => Direction::Right,
-            _ => panic!("Invalid random response"),
+        if self.current_path.len() == 0 {
+            let map_state = Rc::new(state.map.clone());
+
+            let origin_node = pathfinder::PathNode {
+                position: state.me.position(),
+                map_information: self.map_information.clone(),
+                current_map_state: map_state.clone(),
+            };
+
+            // Pathfind to all corners/intersections, to determine our route
+            let mut paths: Vec<Vec<Position>> = self.map_information
+                .turning_points()
+                .map(|pos| pathfinder::PathNode {
+                    position: pos.clone(),
+                    map_information: self.map_information.clone(),
+                    current_map_state: map_state.clone(),
+                })
+                .map(|node| pathfinder::get_shortest(&origin_node, &node))
+                .filter(|path| path.is_some())
+                .map(|path| path.unwrap())
+                .collect();
+
+            paths.sort_by(|p1, p2| p1.len().cmp(&p2.len()));
+            println!("Found {} total paths", paths.len());
+
+            paths = paths
+                .into_iter()
+                .filter(|p| state.map.points_in_path(p) > 0)
+                .collect();
+            println!("{} of them are viable (has points)", paths.len());
+
+            self.current_path = paths[0].clone();
+
+            println!("Walking from {} to {}, a distance of {} steps"
+                , state.me.position()
+                , self.current_path[0]
+                , self.current_path.len());
         }
+
+        self.current_path
+            .pop()
+            .and_then(|x| state.me.position().direction_to(&x))
+            .expect("Did not find a direction to walk in..")
     }
 
     pub fn reset(&mut self) {
-        // TODO: Reset state and prepare for a new turn
+        self.current_path.clear();
     }
 }
