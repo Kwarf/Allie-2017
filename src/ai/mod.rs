@@ -11,7 +11,7 @@ use traits::HasPosition;
 pub struct Bot {
     map_information: Rc<game::MapInformation>, // See PathNode in pathfinder
 
-    current_path: Vec<Position>,
+    current_destination: Option<Position>,
 }
 
 impl Bot {
@@ -19,20 +19,26 @@ impl Bot {
         Bot {
             map_information: Rc::new(game::MapInformation::from_map(&state.map)),
 
-            current_path: Vec::new(),
+            current_destination: None,
         }
     }
 
     pub fn determine_action(&mut self, state: protocol::GameState) -> Direction {
-        if self.current_path.len() == 0 {
-            let map_state = Rc::new(state.map.clone());
+        let map_state = Rc::new(state.map.clone());
+        let origin_node = pathfinder::PathNode {
+            position: state.me.position(),
+            map_information: self.map_information.clone(),
+            current_map_state: map_state.clone(),
+        };
 
-            let origin_node = pathfinder::PathNode {
-                position: state.me.position(),
-                map_information: self.map_information.clone(),
-                current_map_state: map_state.clone(),
-            };
+        // Reset destination if we reached it
+        if let Some(d) = self.current_destination.clone() {
+            if state.me.position() == d {
+                self.current_destination = None;
+            }
+        }
 
+        if self.current_destination.is_none() {
             // Pathfind to all corners/intersections, to determine our route
             let paths: Vec<Vec<Position>> = self.map_information
                 .turning_points()
@@ -59,22 +65,33 @@ impl Bot {
                 .collect();
 
             if paths.len() > 0 {
-                self.current_path = paths[0].clone();
+                let path = &paths[0];
+                self.current_destination = Some(path[0].clone());
 
                 println!("Walking from {} to {}, a distance of {} steps"
                     , state.me.position()
-                    , self.current_path[0]
-                    , self.current_path.len());
+                    , path[0]
+                    , path.len());
             }
         }
 
-        self.current_path
-            .pop()
-            .and_then(|x| state.me.position().direction_to(&x))
-            .unwrap_or(Direction::Down) // TODO: Something better when we could not find a direction to walk in..
+        if let Some(d) = self.current_destination.clone() {
+            let target_node = pathfinder::PathNode {
+                position: d,
+                map_information: self.map_information.clone(),
+                current_map_state: map_state.clone(),
+            };
+
+            if let Some(p) = pathfinder::get_shortest(&origin_node, &target_node) {
+                println!("{} steps left to target", p.len());
+                return state.me.position().direction_to(&p.last().unwrap()).unwrap();
+            }
+        }
+
+        Direction::Down // TODO: Something better when we could not find a direction to walk in..
     }
 
     pub fn reset(&mut self) {
-        self.current_path.clear();
+        self.current_destination = None;
     }
 }
