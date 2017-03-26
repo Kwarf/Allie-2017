@@ -81,3 +81,46 @@ pub fn get_shortest(from: &PathNode, to: &PathNode) -> Option<Vec<Position>> {
 
     None
 }
+
+#[cfg(all(test, feature = "benchmarking"))]
+mod tests {
+    extern crate test;
+
+    use super::*;
+    use self::test::Bencher;
+    use serde_json;
+    use game::{Map, MapInformation};
+
+    const DEFAULT_MAP: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|....|................|....|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|....|.||....||....||.|....|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|....|.......||.......|....|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
+
+    #[bench]
+    fn bench_get_shortest(b: &mut Bencher) {
+        let map: Rc<Map> = Rc::new(serde_json::from_str(DEFAULT_MAP).unwrap());
+        let info = Rc::new(MapInformation::from_map(&map));
+
+        // Bench from a bit into the dead end in the bottom left of the map
+        let origin = PathNode {
+            position: Position {
+                x: 3,
+                y: 20,
+            },
+            map_information: info.clone(),
+            current_map_state: map.clone(),
+        };
+
+        // To the top right of the map
+        let destination = PathNode {
+            position: Position {
+                x: 18,
+                y: 1,
+            },
+            map_information: info.clone(),
+            current_map_state: map.clone(),
+        };
+
+        // 258,640 ns/iter (+/- 19,377) on my i7 6700HQ, == 0.25864 ms
+        b.iter(|| {
+            assert!(get_shortest(&origin, &destination).is_some());
+        })
+    }
+}

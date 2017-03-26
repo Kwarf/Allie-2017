@@ -38,7 +38,7 @@ pub struct Map {
 }
 
 impl Map {
-    #[cfg(debug_assertions)]
+    #[cfg(test)]
     pub fn tilecount(&self) -> usize {
         self.tiles.len()
     }

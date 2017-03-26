@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "benchmarking", feature(test))]
+
 #[macro_use]
 extern crate clap;
 extern crate itertools;
