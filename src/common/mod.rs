@@ -28,7 +28,7 @@ impl Direction {
     }
 }
 
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Position {
     pub x: u32,
     pub y: u32,

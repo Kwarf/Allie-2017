@@ -64,6 +64,37 @@ impl Bot {
                 .take(1)
                 .collect();
 
+            // Found no path by intersections, go to the closest pellet, if any
+            if paths.len() == 0 {
+                let pellets = state.map.pellets();
+                println!("Direct-pellet fallback, {} pellets left", pellets.len());
+
+                // Big red code-duplication warning-flags here, but yeah, will probably rewrite tomorrow
+                let fallback: Vec<Vec<Position>> = pellets
+                    .into_iter()
+                    .sorted_by(|p1, p2| {
+                        let d1 = state.me.position().manhattan_distance_to(p1);
+                        let d2 = state.me.position().manhattan_distance_to(p2);
+                        d1.cmp(&d2)
+                    })
+                    .into_iter()
+                    .take(1)
+                    .map(|pos| pathfinder::PathNode {
+                        position: pos.clone(),
+                        map_information: self.map_information.clone(),
+                        current_map_state: map_state.clone(),
+                    })
+                    .map(|node| pathfinder::get_shortest(&origin_node, &node))
+                    .filter(|path| path.is_some())
+                    .map(|path| path.unwrap())
+                    .collect();
+
+                if fallback.len() > 0 {
+                    println!("Found fallback path");
+                    self.current_destination = Some(fallback[0][0].clone());
+                }
+            }
+
             if paths.len() > 0 {
                 let path = &paths[0];
                 self.current_destination = Some(path[0].clone());

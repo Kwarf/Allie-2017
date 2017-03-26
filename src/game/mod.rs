@@ -69,6 +69,22 @@ impl Map {
             .filter(|pos| self.tile_at(pos.x, pos.y).is_pellet())
             .count()
     }
+
+    pub fn pellets(&self) -> Vec<common::Position> {
+        self.tiles
+            .iter()
+            .enumerate()
+            .filter(|&(i, tile)| tile.is_pellet())
+            .map(|(i, &tile)| i)
+            .map(|i| {
+                let y = i as u32 / self.width;
+                common::Position {
+                    x: i as u32 - self.width * y,
+                    y: y,
+                }
+            })
+            .collect()
+    }
 }
 
 impl HasDimensions for Map {
@@ -242,5 +258,27 @@ mod tests {
         let info = MapInformation::from_map(&map);
         assert_eq!(0, info.intersections.len());
         assert_eq!(0, info.corners.len());
+    }
+
+    #[test]
+    fn can_find_pellet() {
+        const THREE_WAY_INTERSECTION: &'static str = r#"
+{
+    "content": [
+        "|||||",
+        "|||_|",
+        "|o__|",
+        "|||o|",
+        "|||_|",
+        "|||||"
+    ],
+    "height": 6,
+    "pelletsleft": 0,
+    "width": 5
+}"#;
+        let map: Map = serde_json::from_str(THREE_WAY_INTERSECTION).unwrap();
+        assert_eq!(2, map.pellets().len());
+        assert_eq!(common::Position { x: 1, y: 2 }, map.pellets()[0]);
+        assert_eq!(common::Position { x: 3, y: 3 }, map.pellets()[1]);
     }
 }
