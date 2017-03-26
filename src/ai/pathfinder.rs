@@ -119,7 +119,7 @@ mod tests {
         };
 
         // Results from my i7 6700HQ, latest result at the top
-        // 86,150 ns/iter (+/- 11,872) == 0.08615, a 66.69% improvement
+        // (4c8b02c) 86,150 ns/iter (+/- 11,872) == 0.08615, a 66.69% improvement
         // (7175dc5) 258,640 ns/iter (+/- 19,377) == 0.25864 ms
         b.iter(|| {
             assert!(get_shortest(&origin, &destination).is_some());

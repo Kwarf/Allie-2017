@@ -98,6 +98,9 @@ impl HasDimensions for Map {
 
 #[derive(Default)]
 pub struct MapInformation {
+    // This is essentially a combination of the three below, for convenience
+    turning_points: Vec<common::Position>,
+
     intersections: Vec<common::Position>,
     corners: Vec<common::Position>,
     dead_ends: Vec<common::Position>,
@@ -131,16 +134,23 @@ impl MapInformation {
             }
         }
 
+        // Avoid multiple allocations
+        map_information.turning_points.reserve_exact(
+            map_information.intersections.len() +
+            map_information.corners.len() +
+            map_information.dead_ends.len()
+        );
+        map_information.turning_points.append(&mut map_information.intersections.clone());
+        map_information.turning_points.append(&mut map_information.corners.clone());
+        map_information.turning_points.append(&mut map_information.dead_ends.clone());
+
         map_information
     }
 
-    pub fn turning_points<'a>(&'a self) -> std::iter::Chain<std::iter::Chain<std::slice::Iter<'a, common::Position>, std::slice::Iter<'a, common::Position>>, std::slice::Iter<'a, common::Position>> {
-        // Return a chain of intersecions, corners and dead ends,
+    pub fn turning_points(&self) -> &Vec<common::Position> {
+        // Return intersecions, corners and dead ends,
         // i.e. all positions where it would be sane to turn
-        self.intersections
-            .iter()
-            .chain(self.corners.iter())
-            .chain(self.dead_ends.iter())
+        &self.turning_points
     }
 }
 
@@ -186,6 +196,7 @@ mod tests {
 }"#;
         let map: Map = serde_json::from_str(SIMPLE_INTERSECTION).unwrap();
         let info = MapInformation::from_map(&map);
+        assert_eq!(5, info.turning_points.len());
         assert_eq!(1, info.intersections.len());
         assert_eq!(0, info.corners.len());
         assert_eq!(3, info.intersections[0].x);
@@ -210,6 +221,7 @@ mod tests {
 }"#;
         let map: Map = serde_json::from_str(THREE_WAY_INTERSECTION).unwrap();
         let info = MapInformation::from_map(&map);
+        assert_eq!(4, info.turning_points.len());
         assert_eq!(1, info.intersections.len());
         assert_eq!(0, info.corners.len());
         assert_eq!(3, info.intersections[0].x);
@@ -232,6 +244,7 @@ mod tests {
 }"#;
         let map: Map = serde_json::from_str(TURN).unwrap();
         let info = MapInformation::from_map(&map);
+        assert_eq!(3, info.turning_points.len());
         assert_eq!(0, info.intersections.len());
         assert_eq!(1, info.corners.len());
         assert_eq!(2, info.corners[0].x);
@@ -256,6 +269,7 @@ mod tests {
 }"#;
         let map: Map = serde_json::from_str(STRAIGHT).unwrap();
         let info = MapInformation::from_map(&map);
+        assert_eq!(2, info.turning_points.len());
         assert_eq!(0, info.intersections.len());
         assert_eq!(0, info.corners.len());
     }

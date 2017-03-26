@@ -42,6 +42,7 @@ impl Bot {
             // Pathfind to all corners/intersections, to determine our route
             let paths: Vec<Vec<Position>> = self.map_information
                 .turning_points()
+                .iter()
                 // Initial sort by manhattan distance
                 .sorted_by(|p1, p2| {
                     let d1 = state.me.position().manhattan_distance_to(p1);
