@@ -84,6 +84,7 @@ impl HasDimensions for Map {
 pub struct MapInformation {
     intersections: Vec<common::Position>,
     corners: Vec<common::Position>,
+    dead_ends: Vec<common::Position>,
 }
 
 impl MapInformation {
@@ -108,18 +109,22 @@ impl MapInformation {
                 else if walkable_neighbours.len() == 2 && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0) {
                     map_information.corners.push(common::Position::new(x, y));
                 }
+                else if walkable_neighbours.len() == 1 {
+                    map_information.dead_ends.push(common::Position::new(x, y));
+                }
             }
         }
 
         map_information
     }
 
-    pub fn turning_points<'a>(&'a self) -> std::iter::Chain<std::slice::Iter<'a, common::Position>, std::slice::Iter<'a, common::Position>> {
-        // Return a chain of both intersecions and corners,
-        // i.e. all positions where turning is possible
+    pub fn turning_points<'a>(&'a self) -> std::iter::Chain<std::iter::Chain<std::slice::Iter<'a, common::Position>, std::slice::Iter<'a, common::Position>>, std::slice::Iter<'a, common::Position>> {
+        // Return a chain of intersecions, corners and dead ends,
+        // i.e. all positions where it would be sane to turn
         self.intersections
             .iter()
             .chain(self.corners.iter())
+            .chain(self.dead_ends.iter())
     }
 }
 
