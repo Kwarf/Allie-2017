@@ -23,7 +23,7 @@ impl PartialEq for PathNode {
 
 impl Hash for PathNode {
     fn hash<H: Hasher>(&self, state: &mut H) {
-
+        self.position.hash(state);
     }
 }
 
@@ -118,7 +118,9 @@ mod tests {
             current_map_state: map.clone(),
         };
 
-        // 258,640 ns/iter (+/- 19,377) on my i7 6700HQ, == 0.25864 ms
+        // Results from my i7 6700HQ, latest result at the top
+        // 86,150 ns/iter (+/- 11,872) == 0.08615, a 66.69% improvement
+        // (7175dc5) 258,640 ns/iter (+/- 19,377) == 0.25864 ms
         b.iter(|| {
             assert!(get_shortest(&origin, &destination).is_some());
         })
