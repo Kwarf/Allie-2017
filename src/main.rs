@@ -60,7 +60,7 @@ fn main() {
 
     // We're connected, go go go
     let mut client = client.unwrap();
-    client.identify_as("Allie");
+    client.identify_as("Allie HEAD");
 
     let mut bot: Option<ai::Bot> = None;
 

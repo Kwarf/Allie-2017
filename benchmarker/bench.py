@@ -9,7 +9,9 @@ import time
 GHOSTLY_PATH = '/usr/bin/ghostly'
 
 ALLIE_PATH = '../target/debug/allie'
-RANDOM_PATH = './rand0m.py'
+
+# Old versions
+ALLIE_C657773 = './bin/allie_c657773'
 
 RESULT_RE = re.compile(r'^name:(?P<name>[^;]+);wins:(?P<wins>\d+);score:(?P<score>\d+)$')
 
@@ -30,7 +32,7 @@ def parse_result(server_output):
 def benchmark():
     # Start the server
     server = subprocess.Popen([GHOSTLY_PATH
-                               , '--headless'
+                            #    , '--headless'
                                , '--start-at', '2'
                                , '--tickless'
                                , '--rounds', str(ROUNDS)]
@@ -40,7 +42,7 @@ def benchmark():
 
     # Start the bots, ignoring any output
     devnull = open(os.devnull, 'w')
-    subprocess.Popen(['python', RANDOM_PATH], stdout=devnull, stderr=devnull)
+    subprocess.Popen([ALLIE_C657773], stdout=devnull, stderr=devnull)
     subprocess.Popen([ALLIE_PATH], stdout=devnull)
 
     # Wait here until the match is finished

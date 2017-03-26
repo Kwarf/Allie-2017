@@ -34,7 +34,7 @@ impl Bot {
             };
 
             // Pathfind to all corners/intersections, to determine our route
-            let mut paths: Vec<Vec<Position>> = self.map_information
+            let paths: Vec<Vec<Position>> = self.map_information
                 .turning_points()
                 // Initial sort by manhattan distance
                 .sorted_by(|p1, p2| {
@@ -58,27 +58,20 @@ impl Bot {
                 .take(1)
                 .collect();
 
-            paths.sort_by(|p1, p2| p1.len().cmp(&p2.len()));
-            println!("Found {} total paths", paths.len());
+            if paths.len() > 0 {
+                self.current_path = paths[0].clone();
 
-            paths = paths
-                .into_iter()
-                .filter(|p| state.map.points_in_path(p) > 0)
-                .collect();
-            println!("{} of them are viable (has points)", paths.len());
-
-            self.current_path = paths[0].clone();
-
-            println!("Walking from {} to {}, a distance of {} steps"
-                , state.me.position()
-                , self.current_path[0]
-                , self.current_path.len());
+                println!("Walking from {} to {}, a distance of {} steps"
+                    , state.me.position()
+                    , self.current_path[0]
+                    , self.current_path.len());
+            }
         }
 
         self.current_path
             .pop()
             .and_then(|x| state.me.position().direction_to(&x))
-            .expect("Did not find a direction to walk in..")
+            .unwrap_or(Direction::Down) // TODO: Something better when we could not find a direction to walk in..
     }
 
     pub fn reset(&mut self) {
