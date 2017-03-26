@@ -6,6 +6,7 @@ license = "MIT"
 
 [dependencies]
 clap = "2.21.1"
+itertools = "0.5"
 pathfinding = "0.1"
 serde = "0.9"
 serde_derive = "0.9"

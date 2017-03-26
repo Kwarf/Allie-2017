@@ -4,6 +4,7 @@ mod pathfinder;
 
 use common::{Direction, Position};
 use game;
+use itertools::Itertools;
 use protocol;
 use traits::HasPosition;
 
@@ -35,14 +36,26 @@ impl Bot {
             // Pathfind to all corners/intersections, to determine our route
             let mut paths: Vec<Vec<Position>> = self.map_information
                 .turning_points()
+                // Initial sort by manhattan distance
+                .sorted_by(|p1, p2| {
+                    let d1 = state.me.position().manhattan_distance_to(p1);
+                    let d2 = state.me.position().manhattan_distance_to(p2);
+                    d1.cmp(&d2)
+                })
+                .into_iter()
                 .map(|pos| pathfinder::PathNode {
                     position: pos.clone(),
                     map_information: self.map_information.clone(),
                     current_map_state: map_state.clone(),
                 })
+                // Pathfinding will be lazy...
                 .map(|node| pathfinder::get_shortest(&origin_node, &node))
                 .filter(|path| path.is_some())
                 .map(|path| path.unwrap())
+                // ...and look for paths with points in them...
+                .filter(|path| state.map.points_in_path(path) > 0)
+                // ...and stop when a single one is found
+                .take(1)
                 .collect();
 
             paths.sort_by(|p1, p2| p1.len().cmp(&p2.len()));

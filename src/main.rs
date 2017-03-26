@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate clap;
+extern crate itertools;
 extern crate pathfinding;
 extern crate serde;
 #[macro_use]
