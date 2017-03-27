@@ -60,6 +60,7 @@ impl Strategy for PickPellets {
             .map(|node| pathfinder::get_shortest(&origin_node, &node))
             .filter(|path| path.is_some())
             .map(|path| path.unwrap())
+            .filter(|path| path.len() > 0)
             .map(|path| (state.map.points_in_path(&path) as f32 / path.len() as f32, path))
             .max_by(|&(pp1, _), &(pp2, _)| {
                 pp1.partial_cmp(&pp2).unwrap_or(cmp::Ordering::Equal)
