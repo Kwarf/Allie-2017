@@ -25,11 +25,6 @@ impl Bot {
 
     pub fn determine_action(&mut self, state: protocol::GameState) -> Direction {
         let map_state = Rc::new(state.map.clone());
-        let origin_node = pathfinder::PathNode {
-            position: state.me.position(),
-            map_information: self.map_information.clone(),
-            current_map_state: map_state.clone(),
-        };
 
         // Reset destination if we reached it
         if let Some(d) = self.current_destination.clone() {
@@ -40,7 +35,7 @@ impl Bot {
 
         if self.current_destination.is_none() {
             // Pathfind to all corners/intersections, to determine our route
-            let paths: Vec<Vec<Position>> = self.map_information
+            let paths: Vec<(Vec<Position>, usize)> = self.map_information
                 .turning_points()
                 .iter()
                 // Initial sort by manhattan distance
@@ -50,17 +45,12 @@ impl Bot {
                     d1.cmp(&d2)
                 })
                 .into_iter()
-                .map(|pos| pathfinder::PathNode {
-                    position: pos.clone(),
-                    map_information: self.map_information.clone(),
-                    current_map_state: map_state.clone(),
-                })
                 // Pathfinding will be lazy...
-                .map(|node| pathfinder::get_shortest(&origin_node, &node))
+                .map(|target| pathfinder::get_shortest(&state.me.position(), &target, &self.map_information, &map_state))
                 .filter(|path| path.is_some())
                 .map(|path| path.unwrap())
                 // ...and look for paths with points in them...
-                .filter(|path| state.map.points_in_path(path) > 0)
+                .filter(|path| state.map.points_in_path(&path.0) > 0)
                 // ...and stop when a single one is found
                 .take(1)
                 .collect();
@@ -71,7 +61,7 @@ impl Bot {
                 println!("Direct-pellet fallback, {} pellets left", pellets.len());
 
                 // Big red code-duplication warning-flags here, but yeah, will probably rewrite tomorrow
-                let fallback: Vec<Vec<Position>> = pellets
+                let fallback: Vec<(Vec<Position>, usize)> = pellets
                     .into_iter()
                     .sorted_by(|p1, p2| {
                         let d1 = state.me.position().manhattan_distance_to(p1);
@@ -80,43 +70,38 @@ impl Bot {
                     })
                     .into_iter()
                     .take(1)
-                    .map(|pos| pathfinder::PathNode {
-                        position: pos.clone(),
-                        map_information: self.map_information.clone(),
-                        current_map_state: map_state.clone(),
-                    })
-                    .map(|node| pathfinder::get_shortest(&origin_node, &node))
+                    .map(|target| pathfinder::get_shortest(&state.me.position(), &target, &self.map_information, &map_state))
                     .filter(|path| path.is_some())
                     .map(|path| path.unwrap())
                     .collect();
 
                 if fallback.len() > 0 {
                     println!("Found fallback path");
-                    self.current_destination = Some(fallback[0][0].clone());
+                    self.current_destination = Some(fallback[0].0[0].clone());
                 }
             }
 
             if paths.len() > 0 {
                 let path = &paths[0];
-                self.current_destination = Some(path[0].clone());
+                self.current_destination = Some(path.0[0].clone());
 
                 println!("Walking from {} to {}, a distance of {} steps"
                     , state.me.position()
-                    , path[0]
-                    , path.len());
+                    , path.0[0]
+                    , path.0.len());
             }
         }
 
         if let Some(d) = self.current_destination.clone() {
-            let target_node = pathfinder::PathNode {
-                position: d,
-                map_information: self.map_information.clone(),
-                current_map_state: map_state.clone(),
-            };
+            if let Some(p) = pathfinder::get_shortest(&state.me.position(), &d, &self.map_information, &map_state) {
+                println!("Walking from {} to {}", p.0.last().unwrap(), p.0[0]);
+                println!("Sequence:");
+                for n in &p.0 {
+                    println!("\t{}", n);
+                }
 
-            if let Some(p) = pathfinder::get_shortest(&origin_node, &target_node) {
-                println!("{} steps left to target", p.len());
-                return state.me.position().direction_to(&p.last().unwrap()).unwrap();
+                println!("{} cost to target", p.1);
+                return state.me.position().direction_to(&p.0.last().unwrap()).unwrap();
             }
         }
 

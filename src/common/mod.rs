@@ -1,5 +1,7 @@
 use std::fmt;
 
+use traits::HasDimensions;
+
 #[derive(PartialEq)]
 pub enum Direction {
     Up,
@@ -63,6 +65,84 @@ impl Position {
         }
 
         None
+    }
+
+    // Returns neighbour position in provided direction, with limit wrapping
+    // And yes, it's not very nice looking, but I think it works
+    pub fn neighbour<T: HasDimensions>(&self, limits: &T, direction: &Direction) -> Position {
+        let width = limits.width() - 1;
+        let height = limits.height() - 1;
+        match *direction {
+            Direction::Up => Position {
+                x: self.x,
+                y: if self.y == 0 {
+                    height
+                }
+                else {
+                    self.y - 1
+                },
+            },
+            Direction::Down => Position {
+                x: self.x,
+                y: if self.y == height {
+                    0
+                }
+                else {
+                    self.y + 1
+                },
+            },
+            Direction::Left => Position {
+                x: if self.x == 0 {
+                    width
+                }
+                else {
+                    self.x - 1
+                },
+                y: self.y
+            },
+            Direction::Right => Position {
+                x: if self.x == width {
+                    0
+                }
+                else {
+                    self.x + 1
+                },
+                y: self.y,
+            },
+        }
+    }
+
+    // Returns the positions based on valid moves, left, right, up, down
+    // Wrapping at zero and limits (most probably the map)
+    // And yes, it's not very nice looking, but I think it works
+    pub fn neighbours<T: HasDimensions>(&self, limits: &T) -> [Position; 4] {
+        [
+            self.neighbour(limits, &Direction::Up),
+            self.neighbour(limits, &Direction::Down),
+            self.neighbour(limits, &Direction::Left),
+            self.neighbour(limits, &Direction::Right),
+        ]
+    }
+
+    pub fn direct_moves_to<T: HasDimensions>(&self, other: &Position, limits: &T) -> Vec<Position> {
+        // Manhattan distance, but this shouldn't matter since
+        // we should only be going straight when calling this method
+        debug_assert!(self.x == other.x || self.y == other.y
+            , "direct_moves_to() can only walk straight, attempted from {} to {}", self, other);
+        let distance = self.manhattan_distance_to(other);
+
+        let mut ret = Vec::with_capacity(distance as usize);
+
+        if let Some(dir) = self.direction_to(other) {
+            ret.push(self.neighbour(limits, &dir));
+            // Sketchy way to insert as many positions as the distance to target
+            for i in 1..distance {
+                let p = ret.last().unwrap().neighbour(limits, &dir);
+                ret.push(p);
+            }
+        }
+
+        ret
     }
 }
 

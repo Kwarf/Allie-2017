@@ -1,4 +1,5 @@
 use std;
+use std::collections::HashSet;
 
 use common;
 use protocol::json;
@@ -99,58 +100,108 @@ impl HasDimensions for Map {
 #[derive(Default)]
 pub struct MapInformation {
     // This is essentially a combination of the three below, for convenience
-    turning_points: Vec<common::Position>,
+    turning_points: HashSet<common::Position>,
 
-    intersections: Vec<common::Position>,
-    corners: Vec<common::Position>,
-    dead_ends: Vec<common::Position>,
+    intersections: HashSet<common::Position>,
+    corners: HashSet<common::Position>,
+    dead_ends: HashSet<common::Position>,
+
+    walkable_positions: HashSet<common::Position>,
+
+    size: (u32, u32),
+}
+
+impl HasDimensions for MapInformation {
+    fn width(&self) -> u32 {
+        self.size.0
+    }
+
+    fn height(&self) -> u32 {
+        self.size.1
+    }
 }
 
 impl MapInformation {
     pub fn from_map(map: &Map) -> MapInformation {
         let mut map_information = MapInformation::default();
 
-        // Find any intersections
+        map_information.size = (map.width(), map.height());
+
+        // Classify what is walkable
         for y in 0..map.height() {
             for x in 0..map.width() {
-                if !map.tile_at(x, y).is_walkable() {
-                    continue;
-                }
-
-                let walkable_neighbours: Vec<(common::Direction, TileType)> = map.neighbours(x, y)
-                    .into_iter()
-                    .filter(|x| x.1.is_walkable())
-                    .collect();
-
-                if walkable_neighbours.len() > 2 {
-                    map_information.intersections.push(common::Position::new(x, y));
-                }
-                else if walkable_neighbours.len() == 2 && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0) {
-                    map_information.corners.push(common::Position::new(x, y));
-                }
-                else if walkable_neighbours.len() == 1 {
-                    map_information.dead_ends.push(common::Position::new(x, y));
+                if map.tile_at(x, y).is_walkable() {
+                    map_information.walkable_positions.insert(common::Position::new(x, y));
                 }
             }
         }
 
-        // Avoid multiple allocations
-        map_information.turning_points.reserve_exact(
-            map_information.intersections.len() +
-            map_information.corners.len() +
-            map_information.dead_ends.len()
-        );
-        map_information.turning_points.append(&mut map_information.intersections.clone());
-        map_information.turning_points.append(&mut map_information.corners.clone());
-        map_information.turning_points.append(&mut map_information.dead_ends.clone());
+        // Find any intersections
+        for position in &map_information.walkable_positions {
+            let (x, y) = (position.x, position.y);
+
+            let walkable_neighbours: Vec<(common::Direction, TileType)> = map.neighbours(x, y)
+                .into_iter()
+                .filter(|x| x.1.is_walkable())
+                .collect();
+
+            let pos = common::Position::new(x, y);
+
+            if walkable_neighbours.len() > 2 {
+                map_information.turning_points.insert(pos.clone());
+                map_information.intersections.insert(pos.clone());
+            }
+            else if walkable_neighbours.len() == 2 && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0) {
+                map_information.turning_points.insert(pos.clone());
+                map_information.corners.insert(pos.clone());
+            }
+            else if walkable_neighbours.len() == 1 {
+                map_information.turning_points.insert(pos.clone());
+                map_information.dead_ends.insert(pos.clone());
+            }
+        }
 
         map_information
     }
 
-    pub fn turning_points(&self) -> &Vec<common::Position> {
+    pub fn turning_points(&self) -> &HashSet<common::Position> {
         // Return intersecions, corners and dead ends,
         // i.e. all positions where it would be sane to turn
         &self.turning_points
+    }
+
+    pub fn neighbouring_turning_points(&self, position: &common::Position) -> Vec<common::Position> {
+        let mut ret = Vec::new();
+
+        {
+            let mut check = |direction| {
+                let mut pos = position.neighbour(self, &direction);
+                while self.walkable_positions.contains(&pos) {
+                    if self.turning_points.contains(&pos) {
+                        ret.push(pos);
+                        break;
+                    }
+                    pos = pos.neighbour(self, &direction);
+                }
+            };
+
+            // Check in all 4 directions
+            check(common::Direction::Up);
+            check(common::Direction::Down);
+            check(common::Direction::Left);
+            check(common::Direction::Right);
+        }
+
+        ret
+    }
+
+    pub fn neighbouring_walkable_tiles(&self, position: &common::Position) -> Vec<common::Position> {
+        position
+            .neighbours(self)
+            .into_iter()
+            .filter(|x| self.walkable_positions.contains(x))
+            .map(|x| x.clone())
+            .collect()
     }
 }
 
@@ -199,8 +250,7 @@ mod tests {
         assert_eq!(5, info.turning_points.len());
         assert_eq!(1, info.intersections.len());
         assert_eq!(0, info.corners.len());
-        assert_eq!(3, info.intersections[0].x);
-        assert_eq!(3, info.intersections[0].y);
+        assert!(info.intersections.contains(&common::Position::new(3, 3)));
     }
 
     #[test]
@@ -224,8 +274,7 @@ mod tests {
         assert_eq!(4, info.turning_points.len());
         assert_eq!(1, info.intersections.len());
         assert_eq!(0, info.corners.len());
-        assert_eq!(3, info.intersections[0].x);
-        assert_eq!(2, info.intersections[0].y);
+        assert!(info.intersections.contains(&common::Position::new(3, 2)));
     }
 
     #[test]
@@ -247,8 +296,7 @@ mod tests {
         assert_eq!(3, info.turning_points.len());
         assert_eq!(0, info.intersections.len());
         assert_eq!(1, info.corners.len());
-        assert_eq!(2, info.corners[0].x);
-        assert_eq!(2, info.corners[0].y);
+        assert!(info.corners.contains(&common::Position::new(2, 2)));
     }
 
     #[test]
@@ -294,5 +342,33 @@ mod tests {
         assert_eq!(2, map.pellets().len());
         assert_eq!(common::Position { x: 1, y: 2 }, map.pellets()[0]);
         assert_eq!(common::Position { x: 3, y: 3 }, map.pellets()[1]);
+    }
+
+    #[test]
+    fn can_find_neighbouring_turning_points() {
+        const SIMPLE_INTERSECTION: &'static str = r#"
+{
+    "content": [
+        "|||||||",
+        "|||_|||",
+        "|_____|",
+        "|||_|||",
+        "|||_|||",
+        "|||_|||",
+        "|||_|||",
+        "|||___|",
+        "|||||||"
+    ],
+    "height": 9,
+    "pelletsleft": 0,
+    "width": 7
+}"#;
+        let map: Map = serde_json::from_str(SIMPLE_INTERSECTION).unwrap();
+        let info = MapInformation::from_map(&map);
+        let turning_points = info.neighbouring_turning_points(&common::Position { x: 3, y: 5 });
+        assert_eq!(2, turning_points.len());
+        // Sorting doesn't matter, we would mostly need to re-sort anyways
+        assert!(info.turning_points.contains(&common::Position::new(3, 2)));
+        assert!(info.turning_points.contains(&common::Position::new(3, 7)));
     }
 }

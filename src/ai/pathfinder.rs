@@ -1,4 +1,5 @@
 use pathfinding::astar;
+use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
@@ -33,35 +34,62 @@ impl PathNode {
     }
 
     fn neighbours(&self) -> Vec<(PathNode, usize)> {
-        self.current_map_state
-            .neighbours(self.position.x, self.position.y)
+        self.map_information
+            .neighbouring_turning_points(&self.position)
             .iter()
-            .filter(|x| x.1.is_walkable())
-            .map(|x| {
-                match x.0 {
-                    Direction::Up => (0i32, -1i32),
-                    Direction::Down => (0, 1),
-                    Direction::Left => (-1, 0),
-                    Direction::Right => (1, 0),
-                }
-            })
-            .map(|p| Position {
-                // Again with the typecasts.. Everything should have been i32
-                x: (self.position.x as i32 + p.0) as u32,
-                y: (self.position.y as i32 + p.1) as u32,
-            })
-            .map(|p| PathNode {
-                position: p,
+            .map(|p| (p, self.position.manhattan_distance_to(&p) as usize))
+            .map(|(p, d)| (PathNode {
+                position: p.clone(),
                 map_information: self.map_information.clone(),
                 current_map_state: self.current_map_state.clone(),
-            })
-            .map(|n| (n, 1))
+            }, d))
             .collect()
     }
 }
 
-pub fn get_shortest(from: &PathNode, to: &PathNode) -> Option<Vec<Position>> {
-    let path = astar(from, |p| p.neighbours(), |p| p.heuristic_to(&to), |p| *p == *to);
+pub fn get_shortest(from: &Position, to: &Position, map_information: &Rc<game::MapInformation>, map_state: &Rc<game::Map>) -> Option<(Vec<Position>, usize)> {
+    println!("\n\nPathfinding from {} to {}", from, to);
+    if *from == *to {
+        return None; // We're already here
+    }
+
+    let source_intersection = map_information.neighbouring_turning_points(&from)
+        .iter()
+        // Get the one with the lowest manhattan distance to where we want to go
+        .min_by(|p1, p2| {
+            let d1 = p1.manhattan_distance_to(&to);
+            let d2 = p2.manhattan_distance_to(&to);
+            d1.cmp(&d2)
+        })
+        .and_then(|p| Some(p.clone()))
+        .expect("Something went very wrong, I could not find an intersection to start pathfinding from..");
+
+    let target_intersection = map_information.neighbouring_turning_points(&to)
+        .iter()
+        // Get the one with the lowest manhattan distance to where we want to go
+        .min_by(|p1, p2| {
+            let d1 = p1.manhattan_distance_to(&to);
+            let d2 = p2.manhattan_distance_to(&to);
+            d1.cmp(&d2)
+        })
+        .and_then(|p| Some(p.clone()))
+        .expect("Something went very wrong, I could not find an intersection to end pathfinding at..");
+
+    println!("Starting at intersection {} and going to {}", source_intersection, target_intersection);
+
+    let source_node = PathNode {
+        position: source_intersection,
+        map_information: map_information.clone(),
+        current_map_state: map_state.clone(),
+    };
+
+    let target_node = PathNode {
+        position: target_intersection,
+        map_information: map_information.clone(),
+        current_map_state: map_state.clone(),
+    };
+
+    let path = astar(&source_node, |node| node.neighbours(), |node| node.heuristic_to(&target_node), |node| *node == target_node);
 
     if let Some(x) = path {
         let mut sequence: Vec<Position> = x.0
@@ -69,14 +97,36 @@ pub fn get_shortest(from: &PathNode, to: &PathNode) -> Option<Vec<Position>> {
             .map(|node| node.position)
             .collect();
 
+        // // Append the remaining movements needed from the last node (intersection) to our target tile
+        // if !map_information.turning_points().contains(sequence.last().unwrap()) {
+        //     let mut remaining = sequence.last().unwrap().direct_moves_to::<game::MapInformation>(&to, map_information.borrow());
+        //     sequence.append(&mut remaining);
+        // }
+
         // "Reverse" order is easier, we pop from the end while walking
         sequence.reverse();
 
+        // // And now we can append the positions we need to visit to go from out tile to the first node
+        // if !map_information.turning_points().contains(sequence.last().unwrap()) {
+        //     let mut initial = from.direct_moves_to::<game::MapInformation>(&sequence.last().unwrap(), map_information.borrow());
+        //     sequence.append(&mut initial);
+        // }
+
+        if *sequence.last().unwrap() == *from {
+            sequence.pop();
+        }
+
         // pathfinding crate: "The returned path comprises both the start and end node."
         // We don't need the start position
-        sequence.pop();
+        // sequence.pop();
 
-        return Some(sequence);
+        // println!("Walking from {} to {}, a path of {} steps", sequence[0], sequence.last().unwrap(), sequence.len());
+        // println!("Sequence:");
+        // for p in &sequence {
+        //     println!("\t{}", p);
+        // }
+
+        return Some((sequence, x.1));
     }
 
     None
