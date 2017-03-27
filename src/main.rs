@@ -89,7 +89,7 @@ fn main() {
                     Some(ref mut x) => {
                         let action = x.determine_action(state);
                         println!("Walking: {}", action);
-                        client.send_action(action);
+                        client.send_action(&action);
                     },
                     None => debug_assert!(false, "Received stateupdate message while not having an initialized AI"),
                 }

@@ -11,6 +11,7 @@ use traits::HasPosition;
 pub struct Bot {
     map_information: Rc<game::MapInformation>, // See PathNode in pathfinder
 
+    previous_direction: Direction,
     current_destination: Option<Position>,
 }
 
@@ -19,11 +20,18 @@ impl Bot {
         Bot {
             map_information: Rc::new(game::MapInformation::from_map(&state.map)),
 
+            previous_direction: Direction::Down, // Chosen by fair dice roll, https://xkcd.com/221/
             current_destination: None,
         }
     }
 
-    pub fn determine_action(&mut self, state: protocol::GameState) -> Direction {
+    pub fn determine_action(&mut self, state: protocol::GameState) -> &Direction {
+        // If there's pellets in the direction we're travelling, just keep going
+        let position_if_continue = state.me.position().neighbour::<game::Map>(&state.map, &self.previous_direction);
+        if state.map.tile_at(&position_if_continue).is_pellet() {
+            return &self.previous_direction;
+        }
+
         let map_state = Rc::new(state.map.clone());
         let origin_node = pathfinder::PathNode {
             position: state.me.position(),
@@ -116,14 +124,19 @@ impl Bot {
 
             if let Some(p) = pathfinder::get_shortest(&origin_node, &target_node) {
                 println!("{} steps left to target", p.len());
-                return state.me.position().direction_to(&p.last().unwrap()).unwrap();
+                return self.update_direction(state.me.position().direction_to(&p.last().unwrap()).unwrap());
             }
         }
 
-        Direction::Down // TODO: Something better when we could not find a direction to walk in..
+        &self.previous_direction // TODO: Something better when we could not find a direction to walk in..
     }
 
     pub fn reset(&mut self) {
         self.current_destination = None;
+    }
+
+    fn update_direction(&mut self, direction: Direction) -> &Direction {
+        self.previous_direction = direction;
+        &self.previous_direction
     }
 }

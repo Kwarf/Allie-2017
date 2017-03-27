@@ -1,9 +1,11 @@
 use pathfinding::astar;
+use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-use common::{Direction, Position};
+use common::Position;
 use game;
+use traits::HasDimensions;
 
 #[derive(Clone)]
 pub struct PathNode {
@@ -32,24 +34,12 @@ impl PathNode {
         self.position.manhattan_distance_to(&other.position) as usize
     }
 
-    fn neighbours(&self) -> Vec<(PathNode, usize)> {
+    fn neighbours<T: HasDimensions>(&self, limits: &T) -> Vec<(PathNode, usize)> {
         self.current_map_state
-            .neighbours(self.position.x, self.position.y)
+            .neighbours(&self.position)
             .iter()
             .filter(|x| x.1.is_walkable())
-            .map(|x| {
-                match x.0 {
-                    Direction::Up => (0i32, -1i32),
-                    Direction::Down => (0, 1),
-                    Direction::Left => (-1, 0),
-                    Direction::Right => (1, 0),
-                }
-            })
-            .map(|p| Position {
-                // Again with the typecasts.. Everything should have been i32
-                x: (self.position.x as i32 + p.0) as u32,
-                y: (self.position.y as i32 + p.1) as u32,
-            })
+            .map(|x| self.position.neighbour(limits, &x.0))
             .map(|p| PathNode {
                 position: p,
                 map_information: self.map_information.clone(),
@@ -61,7 +51,7 @@ impl PathNode {
 }
 
 pub fn get_shortest(from: &PathNode, to: &PathNode) -> Option<Vec<Position>> {
-    let path = astar(from, |p| p.neighbours(), |p| p.heuristic_to(&to), |p| *p == *to);
+    let path = astar(from, |p| p.neighbours::<game::Map>(from.current_map_state.borrow()), |p| p.heuristic_to(&to), |p| *p == *to);
 
     if let Some(x) = path {
         let mut sequence: Vec<Position> = x.0

@@ -9,5 +9,5 @@ pub trait AIClient {
     fn wait_response(&mut self) -> bool;
     fn response(&self) -> Result<protocol::Message, protocol::Error>;
 
-    fn send_action(&mut self, direction: common::Direction);
+    fn send_action(&mut self, direction: &common::Direction);
 }

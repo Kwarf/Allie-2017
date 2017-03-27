@@ -1,4 +1,4 @@
-use std;
+use std::collections::HashSet;
 
 use common;
 use protocol::json;
@@ -43,30 +43,22 @@ impl Map {
         self.tiles.len()
     }
 
-    pub fn tile_at(&self, x: u32, y: u32) -> TileType {
-        self.tiles[(self.width * y + x) as usize]
+    pub fn tile_at(&self, position: &common::Position) -> TileType {
+        self.tiles[(self.width * position.y + position.x) as usize]
     }
 
-    pub fn neighbours(&self, x: u32, y: u32) -> Vec<(common::Direction, TileType)> {
-        let mut neighbours = Vec::new();
-        if x > 0 {
-            neighbours.push((common::Direction::Left, self.tile_at(x - 1, y)));
-        }
-        if x < self.width - 1 {
-            neighbours.push((common::Direction::Right, self.tile_at(x + 1, y)));
-        }
-        if y > 0 {
-            neighbours.push((common::Direction::Up, self.tile_at(x, y - 1)));
-        }
-        if y < self.height() - 1 {
-            neighbours.push((common::Direction::Down, self.tile_at(x, y + 1)));
-        }
-        neighbours
+    pub fn neighbours(&self, position: &common::Position) -> Vec<(common::Direction, TileType)> {
+        vec![
+            (common::Direction::Left, self.tile_at(&position.neighbour(self, &common::Direction::Left))),
+            (common::Direction::Right, self.tile_at(&position.neighbour(self, &common::Direction::Right))),
+            (common::Direction::Up, self.tile_at(&position.neighbour(self, &common::Direction::Up))),
+            (common::Direction::Down, self.tile_at(&position.neighbour(self, &common::Direction::Down))),
+        ]
     }
 
     pub fn points_in_path(&self, path: &Vec<common::Position>) -> usize {
         path.iter()
-            .filter(|pos| self.tile_at(pos.x, pos.y).is_pellet())
+            .filter(|pos| self.tile_at(pos).is_pellet())
             .count()
     }
 
@@ -74,8 +66,8 @@ impl Map {
         self.tiles
             .iter()
             .enumerate()
-            .filter(|&(i, tile)| tile.is_pellet())
-            .map(|(i, &tile)| i)
+            .filter(|&(_, tile)| tile.is_pellet())
+            .map(|(i, &_)| i)
             .map(|i| {
                 let y = i as u32 / self.width;
                 common::Position {
@@ -99,55 +91,55 @@ impl HasDimensions for Map {
 #[derive(Default)]
 pub struct MapInformation {
     // This is essentially a combination of the three below, for convenience
-    turning_points: Vec<common::Position>,
+    turning_points: HashSet<common::Position>,
 
-    intersections: Vec<common::Position>,
-    corners: Vec<common::Position>,
-    dead_ends: Vec<common::Position>,
+    intersections: HashSet<common::Position>,
+    corners: HashSet<common::Position>,
+    dead_ends: HashSet<common::Position>,
+
+    walkable_positions: HashSet<common::Position>,
 }
 
 impl MapInformation {
     pub fn from_map(map: &Map) -> MapInformation {
         let mut map_information = MapInformation::default();
 
-        // Find any intersections
+        // Classify what is walkable
         for y in 0..map.height() {
             for x in 0..map.width() {
-                if !map.tile_at(x, y).is_walkable() {
-                    continue;
-                }
-
-                let walkable_neighbours: Vec<(common::Direction, TileType)> = map.neighbours(x, y)
-                    .into_iter()
-                    .filter(|x| x.1.is_walkable())
-                    .collect();
-
-                if walkable_neighbours.len() > 2 {
-                    map_information.intersections.push(common::Position::new(x, y));
-                }
-                else if walkable_neighbours.len() == 2 && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0) {
-                    map_information.corners.push(common::Position::new(x, y));
-                }
-                else if walkable_neighbours.len() == 1 {
-                    map_information.dead_ends.push(common::Position::new(x, y));
+                let pos = common::Position::new(x, y);
+                if map.tile_at(&pos).is_walkable() {
+                    map_information.walkable_positions.insert(pos);
                 }
             }
         }
 
-        // Avoid multiple allocations
-        map_information.turning_points.reserve_exact(
-            map_information.intersections.len() +
-            map_information.corners.len() +
-            map_information.dead_ends.len()
-        );
-        map_information.turning_points.append(&mut map_information.intersections.clone());
-        map_information.turning_points.append(&mut map_information.corners.clone());
-        map_information.turning_points.append(&mut map_information.dead_ends.clone());
+        // Find any intersections
+        for position in &map_information.walkable_positions {
+            let walkable_neighbours: Vec<(common::Direction, TileType)> = position.neighbours(map)
+                .into_iter()
+                .filter(|x| map_information.walkable_positions.contains(x))
+                .map(|x| (position.direction_to(x).unwrap(), map.tile_at(x)))
+                .collect();
+
+            if walkable_neighbours.len() > 2 {
+                map_information.intersections.insert(position.clone());
+                map_information.turning_points.insert(position.clone());
+            }
+            else if walkable_neighbours.len() == 2 && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0) {
+                map_information.corners.insert(position.clone());
+                map_information.turning_points.insert(position.clone());
+            }
+            else if walkable_neighbours.len() == 1 {
+                map_information.dead_ends.insert(position.clone());
+                map_information.turning_points.insert(position.clone());
+            }
+        }
 
         map_information
     }
 
-    pub fn turning_points(&self) -> &Vec<common::Position> {
+    pub fn turning_points(&self) -> &HashSet<common::Position> {
         // Return intersecions, corners and dead ends,
         // i.e. all positions where it would be sane to turn
         &self.turning_points

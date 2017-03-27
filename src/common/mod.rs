@@ -1,6 +1,8 @@
 use std::fmt;
 
-#[derive(PartialEq)]
+use traits::HasDimensions;
+
+#[derive(Clone, PartialEq)]
 pub enum Direction {
     Up,
     Down,
@@ -63,6 +65,60 @@ impl Position {
         }
 
         None
+    }
+
+    // Returns neighbour position in provided direction, with limit wrapping
+    // And yes, it's not very nice looking, but I think it works
+    pub fn neighbour<T: HasDimensions>(&self, limits: &T, direction: &Direction) -> Position {
+        let width = limits.width() - 1;
+        let height = limits.height() - 1;
+        match *direction {
+            Direction::Up => Position {
+                x: self.x,
+                y: if self.y == 0 {
+                    height
+                }
+                else {
+                    self.y - 1
+                },
+            },
+            Direction::Down => Position {
+                x: self.x,
+                y: if self.y == height {
+                    0
+                }
+                else {
+                    self.y + 1
+                },
+            },
+            Direction::Left => Position {
+                x: if self.x == 0 {
+                    width
+                }
+                else {
+                    self.x - 1
+                },
+                y: self.y
+            },
+            Direction::Right => Position {
+                x: if self.x == width {
+                    0
+                }
+                else {
+                    self.x + 1
+                },
+                y: self.y,
+            },
+        }
+    }
+
+    pub fn neighbours<T: HasDimensions>(&self, limits: &T) -> [Position; 4] {
+        [
+            self.neighbour(limits, &Direction::Up),
+            self.neighbour(limits, &Direction::Down),
+            self.neighbour(limits, &Direction::Left),
+            self.neighbour(limits, &Direction::Right),
+        ]
     }
 }
 
