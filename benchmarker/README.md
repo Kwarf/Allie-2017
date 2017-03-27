@@ -7,6 +7,24 @@ When saving results below, use information as returned by
 `date +"%Y-%m-%d %H:%M" && git rev-parse --short HEAD` for time and versioning.
 
 # Results
+## 2017-03-27 04:43
+The bot is now using BFS to locate the closest pellet and moving there.
+While there's pellets next to it it will just keep on going for them, with no
+pathfinding. It will primarily keep walking in the same direction if profitable.
+
+What's interesting is that this lowered the win rate vs. the previous version.
+It's interesting to look at them, this new BFS version acts more like a vaccum,
+picking up stray points that the old one left behind, it will probably be best
+to implement a combination of the two strategies.
+```
+Allie (437f008):
+        Wins: 42/100 42.00%
+        Score: 130/274 47.45%
+Allie (65143ae):
+        Wins: 58/100 58.00%
+        Score: 144/274 52.55%
+```
+
 ## 2017-03-26 06:28
 The bot can now move in a somewhat sensible way, resulting in a 100% win rate
 against the random one.

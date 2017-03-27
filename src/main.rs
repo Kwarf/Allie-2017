@@ -62,7 +62,13 @@ fn main() {
 
     // We're connected, go go go
     let mut client = client.unwrap();
-    client.identify_as("Allie HEAD");
+    if cfg!(debug_assertions) {
+        client.identify_as("Allie DBG");
+    }
+    else {
+        client.identify_as("Allie");
+    }
+
 
     let mut bot: Option<ai::Bot> = None;
 
