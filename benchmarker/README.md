@@ -7,6 +7,19 @@ When saving results below, use information as returned by
 `date +"%Y-%m-%d %H:%M" && git rev-parse --short HEAD` for time and versioning.
 
 # Results
+## 2017-03-27 19:38
+Some very minor improvements, mostly a combination of the previous two versions.
+The matches were very deterministic, the new version won because it got to the
+super pellet first, and then they collided.
+```
+Allie (76805f5):
+        Wins: 100/100 100.00%
+        Score: 197/197 100.00%
+Allie (437f008):
+        Wins: 0/100 0.00%
+        Score: 0/197 0.00%
+```
+
 ## 2017-03-27 04:43
 The bot is now using BFS to locate the closest pellet and moving there.
 While there's pellets next to it it will just keep on going for them, with no
