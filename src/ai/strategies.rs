@@ -3,6 +3,7 @@ use ai::{Bot, Strategy, pathfinder};
 use common::{Direction, Position};
 use game::Map;
 use protocol::GameState;
+use std::cmp;
 use std::rc::Rc;
 use traits::HasPosition;
 
@@ -47,8 +48,8 @@ impl Strategy for PickPellets {
         }
 
         // As a last resort we pathfind to all intersections,
-        // and pick the path that contains most pellets
-        let path: Option<Vec<Position>> = bot.map_information
+        // and pick the path that contains most pellets relative to its length
+        let path: Option<(_, Vec<Position>)> = bot.map_information
             .turning_points()
             .into_iter()
             .map(|pos| PathNode {
@@ -59,14 +60,13 @@ impl Strategy for PickPellets {
             .map(|node| pathfinder::get_shortest(&origin_node, &node))
             .filter(|path| path.is_some())
             .map(|path| path.unwrap())
-            .max_by(|p1, p2| {
-                let pp1 = state.map.points_in_path(p1);
-                let pp2 = state.map.points_in_path(p2);
-                pp1.cmp(&pp2)
+            .map(|path| (state.map.points_in_path(&path) as f32 / path.len() as f32, path))
+            .max_by(|&(pp1, _), &(pp2, _)| {
+                pp1.partial_cmp(&pp2).unwrap_or(cmp::Ordering::Equal)
             });
 
         if let Some(p) = path {
-            self.current_path = p;
+            self.current_path = p.1;
             return state.me.position().direction_to(&self.current_path.pop().unwrap());
         }
 
