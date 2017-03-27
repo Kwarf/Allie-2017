@@ -62,7 +62,7 @@ impl Map {
             .count()
     }
 
-    pub fn pellets(&self) -> Vec<common::Position> {
+    pub fn pellets(&self) -> HashSet<common::Position> {
         self.tiles
             .iter()
             .enumerate()
@@ -119,7 +119,7 @@ impl MapInformation {
             let walkable_neighbours: Vec<(common::Direction, TileType)> = position.neighbours(map)
                 .into_iter()
                 .filter(|x| map_information.walkable_positions.contains(x))
-                .map(|x| (position.direction_to(x).unwrap(), map.tile_at(x)))
+                .map(|x| (position.direction_to(&x).unwrap(), map.tile_at(&x)))
                 .collect();
 
             if walkable_neighbours.len() > 2 {
@@ -149,6 +149,7 @@ impl MapInformation {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
     use serde_json;
     use std;
 
@@ -191,8 +192,7 @@ mod tests {
         assert_eq!(5, info.turning_points.len());
         assert_eq!(1, info.intersections.len());
         assert_eq!(0, info.corners.len());
-        assert_eq!(3, info.intersections[0].x);
-        assert_eq!(3, info.intersections[0].y);
+        assert!(info.intersections.contains(&common::Position::new(3, 3)));
     }
 
     #[test]
@@ -216,8 +216,7 @@ mod tests {
         assert_eq!(4, info.turning_points.len());
         assert_eq!(1, info.intersections.len());
         assert_eq!(0, info.corners.len());
-        assert_eq!(3, info.intersections[0].x);
-        assert_eq!(2, info.intersections[0].y);
+        assert!(info.intersections.contains(&common::Position::new(3, 2)));
     }
 
     #[test]
@@ -239,8 +238,7 @@ mod tests {
         assert_eq!(3, info.turning_points.len());
         assert_eq!(0, info.intersections.len());
         assert_eq!(1, info.corners.len());
-        assert_eq!(2, info.corners[0].x);
-        assert_eq!(2, info.corners[0].y);
+        assert!(info.corners.contains(&common::Position::new(2, 2)));
     }
 
     #[test]
@@ -283,8 +281,9 @@ mod tests {
     "width": 5
 }"#;
         let map: Map = serde_json::from_str(THREE_WAY_INTERSECTION).unwrap();
-        assert_eq!(2, map.pellets().len());
-        assert_eq!(common::Position { x: 1, y: 2 }, map.pellets()[0]);
-        assert_eq!(common::Position { x: 3, y: 3 }, map.pellets()[1]);
+        let pellets = map.pellets();
+        assert_eq!(2, pellets.len());
+        assert!(pellets.contains(&common::Position::new(1, 2)));
+        assert!(pellets.contains(&common::Position::new(3, 3)));
     }
 }

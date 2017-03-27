@@ -73,6 +73,7 @@ impl FromStr for protocol::Message {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use common::Position;
     use traits::HasDimensions;
 
     const EXAMPLE_WELCOME: &'static str = r#"{"map":{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|..........................|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|......||....||....||......|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||__|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||__|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":240,"width":28},"messagetype":"welcome","you":{"id":0,"x":11,"y":13}}"#;
@@ -112,10 +113,10 @@ mod tests {
         assert_eq!(868, map.tilecount());
 
         // Test tile types, randomly picked locations
-        assert_eq!(game::TileType::Floor, map.tile_at(12, 10));
-        assert_eq!(game::TileType::Wall, map.tile_at(0, 30));
+        assert_eq!(game::TileType::Floor, map.tile_at(&Position::new(12, 10)));
+        assert_eq!(game::TileType::Wall, map.tile_at(&Position::new(0, 30)));
         // assert_eq!(game::TileType::Door, map.tile_at()); // Example has no door :(, let's just assume it works for now
-        assert_eq!(game::TileType::Pellet, map.tile_at(26, 1));
-        assert_eq!(game::TileType::SuperPellet, map.tile_at(26, 3));
+        assert_eq!(game::TileType::Pellet, map.tile_at(&Position::new(26, 1)));
+        assert_eq!(game::TileType::SuperPellet, map.tile_at(&Position::new(26, 3)));
     }
 }

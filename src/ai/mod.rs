@@ -29,8 +29,22 @@ impl Bot {
         // If there's pellets in the direction we're travelling, just keep going
         let position_if_continue = state.me.position().neighbour::<game::Map>(&state.map, &self.previous_direction);
         if state.map.tile_at(&position_if_continue).is_pellet() {
+            // It's important that we push our target with us, or we'll go back when out of pellets
+            self.current_destination = Some(position_if_continue);
             return &self.previous_direction;
         }
+
+        // If there's a pellet next to us take that
+        let pellet_position = state.me.position()
+            .neighbours::<game::Map>(&state.map)
+            .into_iter()
+            .find(|p| state.map.tile_at(&p).is_pellet());
+
+        if let Some(pos) = pellet_position {
+            self.current_destination = Some(pos.clone());
+            return self.update_direction(state.me.position().direction_to(&pos).unwrap());
+        }
+
 
         let map_state = Rc::new(state.map.clone());
         let origin_node = pathfinder::PathNode {
@@ -47,65 +61,8 @@ impl Bot {
         }
 
         if self.current_destination.is_none() {
-            // Pathfind to all corners/intersections, to determine our route
-            let paths: Vec<Vec<Position>> = self.map_information
-                .turning_points()
-                .iter()
-                // Initial sort by manhattan distance
-                .sorted_by(|p1, p2| {
-                    let d1 = state.me.position().manhattan_distance_to(p1);
-                    let d2 = state.me.position().manhattan_distance_to(p2);
-                    d1.cmp(&d2)
-                })
-                .into_iter()
-                .map(|pos| pathfinder::PathNode {
-                    position: pos.clone(),
-                    map_information: self.map_information.clone(),
-                    current_map_state: map_state.clone(),
-                })
-                // Pathfinding will be lazy...
-                .map(|node| pathfinder::get_shortest(&origin_node, &node))
-                .filter(|path| path.is_some())
-                .map(|path| path.unwrap())
-                // ...and look for paths with points in them...
-                .filter(|path| state.map.points_in_path(path) > 0)
-                // ...and stop when a single one is found
-                .take(1)
-                .collect();
-
-            // Found no path by intersections, go to the closest pellet, if any
-            if paths.len() == 0 {
-                let pellets = state.map.pellets();
-                println!("Direct-pellet fallback, {} pellets left", pellets.len());
-
-                // Big red code-duplication warning-flags here, but yeah, will probably rewrite tomorrow
-                let fallback: Vec<Vec<Position>> = pellets
-                    .into_iter()
-                    .sorted_by(|p1, p2| {
-                        let d1 = state.me.position().manhattan_distance_to(p1);
-                        let d2 = state.me.position().manhattan_distance_to(p2);
-                        d1.cmp(&d2)
-                    })
-                    .into_iter()
-                    .take(1)
-                    .map(|pos| pathfinder::PathNode {
-                        position: pos.clone(),
-                        map_information: self.map_information.clone(),
-                        current_map_state: map_state.clone(),
-                    })
-                    .map(|node| pathfinder::get_shortest(&origin_node, &node))
-                    .filter(|path| path.is_some())
-                    .map(|path| path.unwrap())
-                    .collect();
-
-                if fallback.len() > 0 {
-                    println!("Found fallback path");
-                    self.current_destination = Some(fallback[0][0].clone());
-                }
-            }
-
-            if paths.len() > 0 {
-                let path = &paths[0];
+            // Find the position of the closest pellet (breadth-first search)
+            if let Some(path) = pathfinder::find_closest_pellet(&origin_node) {
                 self.current_destination = Some(path[0].clone());
 
                 println!("Walking from {} to {}, a distance of {} steps"
@@ -127,6 +84,7 @@ impl Bot {
             }
         }
 
+        println!("FALLBACK MOVEMENT");
         &self.previous_direction // TODO: Something better when we could not find a direction to walk in..
     }
 

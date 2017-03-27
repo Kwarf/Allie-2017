@@ -112,8 +112,8 @@ impl Position {
         }
     }
 
-    pub fn neighbours<T: HasDimensions>(&self, limits: &T) -> [Position; 4] {
-        [
+    pub fn neighbours<T: HasDimensions>(&self, limits: &T) -> Vec<Position> {
+        vec![
             self.neighbour(limits, &Direction::Up),
             self.neighbour(limits, &Direction::Down),
             self.neighbour(limits, &Direction::Left),
