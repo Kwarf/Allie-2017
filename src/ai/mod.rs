@@ -123,7 +123,6 @@ impl Bot {
             };
 
             if let Some(p) = pathfinder::get_shortest(&origin_node, &target_node) {
-                println!("{} steps left to target", p.len());
                 return self.update_direction(state.me.position().direction_to(&p.last().unwrap()).unwrap());
             }
         }
