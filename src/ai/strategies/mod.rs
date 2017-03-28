@@ -2,9 +2,11 @@ use ai;
 use common;
 use protocol;
 
+pub mod avoidance;
 pub mod hunter;
 pub mod pick_pellets;
 
+pub use self::avoidance::Avoidance;
 pub use self::hunter::Hunter;
 pub use self::pick_pellets::PickPellets;
 

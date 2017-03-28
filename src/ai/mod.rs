@@ -29,6 +29,7 @@ impl Bot {
         Bot {
             map_information: Rc::new(game::MapInformation::from_map(&state.map)),
             strategies: vec![
+                RefCell::new(Box::new(strategies::Avoidance::new())),
                 RefCell::new(Box::new(strategies::Hunter::new())),
                 RefCell::new(Box::new(strategies::PickPellets::new())),
             ],

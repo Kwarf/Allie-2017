@@ -1,10 +1,11 @@
+use std::collections::HashSet;
 use std::fmt;
 
 pub mod rules;
 
 use traits::HasDimensions;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub enum Direction {
     Up,
     Down,
@@ -29,6 +30,15 @@ impl Direction {
         *self == Direction::Down && *other == Direction::Up ||
         *self == Direction::Left && *other == Direction::Right ||
         *self == Direction::Right && *other == Direction::Left
+    }
+
+    pub fn hash_set_all() -> HashSet<Direction> {
+        let mut set = HashSet::with_capacity(4);
+        set.insert(Direction::Up);
+        set.insert(Direction::Down);
+        set.insert(Direction::Left);
+        set.insert(Direction::Right);
+        set
     }
 }
 
