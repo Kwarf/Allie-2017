@@ -4,22 +4,27 @@ use std::rc::Rc;
 mod pathfinder;
 mod strategies;
 
-use common::{Direction, Position};
+use common::{Direction, Position, rules};
 use game;
 use protocol;
+use traits::HasPosition;
 
 pub trait Strategy {
-    fn action(&mut self, bot: &Bot, state: &protocol::GameState) -> Option<Direction>;
+    fn action(&mut self, bot: &Bot, current_state: &protocol::GameState) -> Option<Direction>;
 }
 
 pub struct Bot {
     map_information: Rc<game::MapInformation>, // See PathNode in pathfinder
     strategies: Vec<RefCell<Box<Strategy>>>,
 
+    previous_state: Option<protocol::GameState>,
+
+    expected_tile_type: game::TileType,
     current_destination: Option<Position>,
     previous_direction: Direction,
 
     tick: u32,
+    remaining_ticks_dangerous: u32,
 }
 
 impl Bot {
@@ -27,18 +32,32 @@ impl Bot {
         Bot {
             map_information: Rc::new(game::MapInformation::from_map(&state.map)),
             strategies: vec![
+                RefCell::new(Box::new(strategies::Hunter::new())),
                 RefCell::new(Box::new(strategies::PickPellets::new())),
             ],
 
+            previous_state: None,
+
+            expected_tile_type: game::TileType::Floor,
             current_destination: None,
             previous_direction: Direction::Down, // Chosen by fair dice roll, https://xkcd.com/221/
 
             tick: 0,
+            remaining_ticks_dangerous: 0,
         }
     }
 
     pub fn determine_action(&mut self, state: protocol::GameState) -> Direction {
         self.tick += 1;
+
+        // Set some state based on what tile we landed on
+        if self.expected_tile_type == game::TileType::SuperPellet {
+            debug_assert!(state.me.is_dangerous);
+            self.remaining_ticks_dangerous += rules::TICKS_DANGEROUS + 1;
+        }
+
+        // Some asserts that our internal state matches what the server sends
+        debug_assert_eq!(state.me.is_dangerous, self.can_eat_others());
 
         let suggested_actions = self.strategies
             .iter()
@@ -57,12 +76,24 @@ impl Bot {
         if self.previous_direction != decision {
             self.previous_direction = decision.clone();
         }
+
+        self.expected_tile_type = state.map.tile_at(&state.me.position().neighbour(&state.map, &decision));
+        self.previous_state = Some(state);
+
+        self.remaining_ticks_dangerous = self.remaining_ticks_dangerous.saturating_sub(1);
+
         decision
     }
 
     pub fn reset(&mut self) {
-        self.previous_direction = Direction::Down;
+        self.previous_state = None;
         self.current_destination = None;
+        self.previous_direction = Direction::Down;
         self.tick = 0;
+        self.remaining_ticks_dangerous = 0;
+    }
+
+    pub fn can_eat_others(&self) -> bool {
+        self.remaining_ticks_dangerous > 0
     }
 }

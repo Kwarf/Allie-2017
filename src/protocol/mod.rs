@@ -16,7 +16,7 @@ pub struct GameState {
 
     // Only present in stateupdate messages
     #[serde(default, rename = "others")]
-    enemies: Vec<Player>,
+    pub enemies: Vec<Player>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -29,7 +29,7 @@ pub struct Player {
     #[serde(default)]
     score: u32,
     #[serde(default, rename = "isdangerous")]
-    is_dangerous: bool,
+    pub is_dangerous: bool,
 }
 
 impl HasPosition for Player {

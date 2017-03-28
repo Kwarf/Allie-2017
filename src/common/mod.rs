@@ -1,5 +1,7 @@
 use std::fmt;
 
+pub mod rules;
+
 use traits::HasDimensions;
 
 #[derive(Clone, PartialEq)]
