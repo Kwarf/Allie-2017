@@ -7,6 +7,22 @@ When saving results below, use information as returned by
 `date +"%Y-%m-%d %H:%M" && git rev-parse --short HEAD` for time and versioning.
 
 # Results
+## 2017-03-28 22:19
+Now has three strategies, other than the previous pellet-picking one there's:
+- __Avoidance__ activates when an enemy is standing on a tile right next to us,
+and will move away from them, but not if we have super pellet powers and they
+don't.
+- __Hunter__ activates when picking up a super pellet, and hunts any other bots
+that do not have pellet powers themself.
+```
+Allie (db37c94):
+        Wins: 100/100 100.00%
+        Score: 157/274 57.30%
+Allie (76805f5):
+        Wins: 0/100 0.00%
+        Score: 117/274 42.70%
+```
+
 ## 2017-03-27 19:38
 Some very minor improvements, mostly a combination of the previous two versions.
 The matches were very deterministic, the new version won because it got to the
