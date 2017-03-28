@@ -1,4 +1,5 @@
 use ai::pathfinder::PathNode;
+use ai::strategies::StrategyType;
 use ai::{Bot, Strategy, pathfinder};
 use common::{Direction, Position};
 use game::Map;
@@ -17,10 +18,22 @@ impl PickPellets {
             current_path: Vec::new(),
         }
     }
+
+    pub fn reset(&mut self) {
+        self.current_path.clear();
+    }
 }
 
 impl Strategy for PickPellets {
+    fn description(&self) -> StrategyType {
+        StrategyType::PickPellets
+    }
+
     fn action(&mut self, bot: &Bot, state: &GameState) -> Option<Direction> {
+        if bot.previous_strategy_type != Some(self.description()) {
+            self.reset();
+        }
+
         let map_state = Rc::new(state.map.clone());
         let origin_node = PathNode {
             position: state.me.position(),

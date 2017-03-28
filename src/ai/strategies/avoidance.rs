@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use ai::Bot;
-use ai::strategies::Strategy;
+use ai::strategies::{Strategy, StrategyType};
 use common::{Direction, Position};
 use protocol::GameState;
 use traits::HasPosition;
@@ -15,6 +15,10 @@ impl Avoidance {
 }
 
 impl Strategy for Avoidance {
+    fn description(&self) -> StrategyType {
+        StrategyType::Avoidance
+    }
+
     fn action(&mut self, bot: &Bot, state: &GameState) -> Option<Direction> {
         let neighbouring_positions: HashSet<Position> = state.me.position()
             .neighbours(&state.map)

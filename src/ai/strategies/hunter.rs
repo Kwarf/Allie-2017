@@ -1,5 +1,6 @@
 use ai::pathfinder::PathNode;
 use ai::{Bot, Strategy, pathfinder};
+use ai::strategies::StrategyType;
 use common::{Direction, Position};
 use protocol::GameState;
 use std::rc::Rc;
@@ -14,6 +15,10 @@ impl Hunter {
 }
 
 impl Strategy for Hunter {
+    fn description(&self) -> StrategyType {
+        StrategyType::Hunter
+    }
+
     fn action(&mut self, bot: &Bot, state: &GameState) -> Option<Direction> {
         if !bot.can_eat_others() {
             return None;
