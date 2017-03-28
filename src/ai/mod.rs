@@ -4,14 +4,11 @@ use std::rc::Rc;
 mod pathfinder;
 mod strategies;
 
+use ai::strategies::Strategy;
 use common::{Direction, Position, rules};
 use game;
 use protocol;
 use traits::HasPosition;
-
-pub trait Strategy {
-    fn action(&mut self, bot: &Bot, current_state: &protocol::GameState) -> Option<Direction>;
-}
 
 pub struct Bot {
     map_information: Rc<game::MapInformation>, // See PathNode in pathfinder
