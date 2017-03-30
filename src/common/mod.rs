@@ -90,46 +90,26 @@ impl Position {
         None
     }
 
-    // Returns neighbour position in provided direction, with limit wrapping
+    // Returns adjacent position in provided direction, with limit wrapping
     // And yes, it's not very nice looking, but I think it works
-    pub fn neighbour<T: HasDimensions>(&self, limits: &T, direction: &Direction) -> Position {
+    pub fn adjacent<T: HasDimensions>(&self, limits: &T, direction: &Direction) -> Position {
         let width = limits.width() - 1;
         let height = limits.height() - 1;
         match *direction {
             Direction::Up => Position {
                 x: self.x,
-                y: if self.y == 0 {
-                    height
-                }
-                else {
-                    self.y - 1
-                },
+                y: if self.y == 0 { height } else { self.y - 1 },
             },
             Direction::Down => Position {
                 x: self.x,
-                y: if self.y == height {
-                    0
-                }
-                else {
-                    self.y + 1
-                },
+                y: if self.y == height { 0 } else { self.y + 1 },
             },
             Direction::Left => Position {
-                x: if self.x == 0 {
-                    width
-                }
-                else {
-                    self.x - 1
-                },
+                x: if self.x == 0 { width } else { self.x - 1 },
                 y: self.y
             },
             Direction::Right => Position {
-                x: if self.x == width {
-                    0
-                }
-                else {
-                    self.x + 1
-                },
+                x: if self.x == width { 0 } else { self.x + 1 },
                 y: self.y,
             },
         }
@@ -137,10 +117,10 @@ impl Position {
 
     pub fn neighbours<T: HasDimensions>(&self, limits: &T) -> Vec<Position> {
         vec![
-            self.neighbour(limits, &Direction::Up),
-            self.neighbour(limits, &Direction::Down),
-            self.neighbour(limits, &Direction::Left),
-            self.neighbour(limits, &Direction::Right),
+            self.adjacent(limits, &Direction::Up),
+            self.adjacent(limits, &Direction::Down),
+            self.adjacent(limits, &Direction::Left),
+            self.adjacent(limits, &Direction::Right),
         ]
     }
 }
@@ -158,6 +138,23 @@ mod tests {
     use game::Map;
 
     const DEFAULT_MAP: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|....|................|....|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|....|.||....||....||.|....|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|....|.......||.......|....|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
+
+    #[test]
+    fn can_get_adjacent_positions() {
+        let map: Map = serde_json::from_str(DEFAULT_MAP).unwrap();
+
+        assert_eq!(Position::new(10, 9), Position::new(10, 10).adjacent(&map, &Direction::Up));
+        assert_eq!(Position::new(10, 11), Position::new(10, 10).adjacent(&map, &Direction::Down));
+        assert_eq!(Position::new(9, 10), Position::new(10, 10).adjacent(&map, &Direction::Left));
+        assert_eq!(Position::new(11, 10), Position::new(10, 10).adjacent(&map, &Direction::Right));
+
+        // Wrapping
+        assert_eq!(Position::new(0, 30), Position::new(0, 0).adjacent(&map, &Direction::Up));
+        assert_eq!(Position::new(27, 0), Position::new(0, 0).adjacent(&map, &Direction::Left));
+
+        assert_eq!(Position::new(27, 0), Position::new(27, 30).adjacent(&map, &Direction::Down));
+        assert_eq!(Position::new(0, 30), Position::new(27, 30).adjacent(&map, &Direction::Right));
+    }
 
     #[test]
     fn can_calculate_manhattan_distance() {

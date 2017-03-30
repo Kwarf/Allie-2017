@@ -38,14 +38,14 @@ impl Strategy for PickPellets {
         }
 
         // With no path we keep going straight if there's pellets there
-        let position_if_continue = state.me.position().neighbour::<Map>(&state.map, &bot.previous_direction);
+        let position_if_continue = state.me.position().adjacent(&state.map, &bot.previous_direction);
         if state.map.tile_at(&position_if_continue).is_pellet() {
             return Some(bot.previous_direction.clone());
         }
 
         // If there's pellets next to us, go in that direction instead
         if let Some(pos) = state.me.position()
-            .neighbours::<Map>(&state.map)
+            .neighbours(&state.map)
             .into_iter()
             .find(|p| state.map.tile_at(&p).is_pellet()) {
             return state.me.position().direction_to(&pos);

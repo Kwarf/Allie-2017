@@ -44,7 +44,7 @@ impl Strategy for Avoidance {
 
         Direction::hash_set_all()
             .difference(&neighbouring_enemy_directions)
-            .find(|d| state.map.tile_at(&state.me.position().neighbour(&state.map, d)).is_walkable())
+            .find(|d| state.map.tile_at(&state.me.position().adjacent(&state.map, d)).is_walkable())
             .and_then(|d| Some(d.clone()))
     }
 }

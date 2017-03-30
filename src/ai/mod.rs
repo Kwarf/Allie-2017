@@ -90,7 +90,7 @@ impl Bot {
             self.previous_direction = decision.clone();
         }
 
-        self.expected_tile_type = state.map.tile_at(&state.me.position().neighbour(&state.map, &decision));
+        self.expected_tile_type = state.map.tile_at(&state.me.position().adjacent(&state.map, &decision));
         self.previous_state = Some(state);
 
         self.remaining_ticks_dangerous = self.remaining_ticks_dangerous.saturating_sub(1);

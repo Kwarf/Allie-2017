@@ -48,10 +48,10 @@ impl Map {
 
     pub fn neighbours(&self, position: &common::Position) -> Vec<(common::Direction, TileType)> {
         vec![
-            (common::Direction::Left, self.tile_at(&position.neighbour(self, &common::Direction::Left))),
-            (common::Direction::Right, self.tile_at(&position.neighbour(self, &common::Direction::Right))),
-            (common::Direction::Up, self.tile_at(&position.neighbour(self, &common::Direction::Up))),
-            (common::Direction::Down, self.tile_at(&position.neighbour(self, &common::Direction::Down))),
+            (common::Direction::Left, self.tile_at(&position.adjacent(self, &common::Direction::Left))),
+            (common::Direction::Right, self.tile_at(&position.adjacent(self, &common::Direction::Right))),
+            (common::Direction::Up, self.tile_at(&position.adjacent(self, &common::Direction::Up))),
+            (common::Direction::Down, self.tile_at(&position.adjacent(self, &common::Direction::Down))),
         ]
     }
 
