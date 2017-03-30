@@ -254,8 +254,7 @@ mod benchmarks {
 
     const DEFAULT_MAP: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|....|................|....|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|....|.||....||....||.|....|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|....|.......||.......|....|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
 
-    #[bench]
-    fn bench_get_shortest(b: &mut Bencher) {
+    fn setup_for_lib_test() -> (PathNode, PathNode) {
         let map: Rc<Map> = Rc::new(serde_json::from_str(DEFAULT_MAP).unwrap());
         let info = Rc::new(MapInformation::from_map(&map));
 
@@ -279,11 +278,28 @@ mod benchmarks {
             current_map_state: map.clone(),
         };
 
+        (origin, destination)
+    }
+
+    #[bench]
+    fn bench_lib_astar(b: &mut Bencher) {
+        let (origin, destination) = setup_for_lib_test();
+
         // Results from my i7 6700HQ, latest result at the top
         // (4c8b02c) 86,150 ns/iter (+/- 11,872) == 0.08615, a 66.69% improvement
         // (7175dc5) 258,640 ns/iter (+/- 19,377) == 0.25864 ms
         b.iter(|| {
-            assert!(get_shortest(&origin, &destination).is_some());
+            astar(&origin, |p| p.neighbours::<game::Map>(&origin.current_map_state.borrow()), |p| p.heuristic_to(&destination), |p| *p == destination)
+        })
+    }
+
+    #[bench]
+    fn bench_lib_bfs(b: &mut Bencher) {
+        let (origin, destination) = setup_for_lib_test();
+
+        // 106,758 ns/iter (+/- 15,305), only slightly slower than A* on this test case
+        b.iter(|| {
+            bfs(&origin, |p| p.neighbours::<game::Map>(origin.current_map_state.borrow()).into_iter().map(|x| x.0), |p| *p == destination)
         })
     }
 
