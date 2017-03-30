@@ -59,7 +59,7 @@ impl Bot {
         // Set some state based on what tile we landed on
         if self.expected_tile_type == game::TileType::SuperPellet {
             debug_assert!(state.me.is_dangerous);
-            self.remaining_ticks_dangerous += rules::TICKS_DANGEROUS + 1;
+            self.remaining_ticks_dangerous = rules::TICKS_DANGEROUS + 1;
         }
 
         // Some asserts that our internal state matches what the server sends
