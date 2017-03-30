@@ -90,7 +90,7 @@ pub fn find_closest_pellet(map: &game::Map, origin: &Position) -> Option<Vec<Pos
 }
 
 pub fn get_shortest(map: &game::Map, from: &Position, to: &Position) -> Option<Vec<Position>> {
-    let path = astar(from, |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&to) as usize, |p| *p == *to);
+    let path = astar(from, |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&to, map) as usize, |p| *p == *to);
     prepare_response(path)
 }
 
@@ -134,8 +134,25 @@ mod tests {
         assert_eq!(50, bfs_path.len());
 
         let lib_path = get_path_from_astar_lib(&map, &origin, &destination);
-
         assert_eq!(50, lib_path.len());
+
+        assert_eq!(lib_path.as_slice(), bfs_path.as_slice());
+    }
+
+    #[test]
+    fn ensure_can_walk_wrapping() {
+        let map: Map = serde_json::from_str(DEFAULT_MAP).unwrap();
+
+        let origin = Position::new(6, 13);
+        let destination = Position::new(26, 14);
+
+        assert_eq!(9, get_cost_from_bfs_graph(&map, &origin, &destination));
+
+        let bfs_path = get_path_from_bfs_graph(&map, &origin, &destination);
+        assert_eq!(9, bfs_path.len());
+
+        let lib_path = get_path_from_astar_lib(&map, &origin, &destination);
+        assert_eq!(9, lib_path.len());
 
         assert_eq!(lib_path.as_slice(), bfs_path.as_slice());
     }
@@ -153,7 +170,7 @@ mod tests {
     }
 
     fn get_path_from_astar_lib(map: &Map, from: &Position, to: &Position) -> Vec<Position> {
-        prepare_response(astar(from, |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&to) as usize, |p| *p == *to)).unwrap()
+        prepare_response(astar(from, |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&to, map) as usize, |p| *p == *to)).unwrap()
     }
 }
 
@@ -176,7 +193,7 @@ mod benchmarks {
         let destination = Position::new(18, 1);
 
         // Results from my i7 6700HQ, latest result at the top
-        // 52,840 ns/iter (+/- 10,839)
+        // (63c250b) 52,840 ns/iter (+/- 10,839)
         // (4c8b02c) 86,150 ns/iter (+/- 11,872) == 0.08615, a 66.69% improvement
         // (7175dc5) 258,640 ns/iter (+/- 19,377) == 0.25864 ms
         b.iter(|| {
@@ -191,7 +208,7 @@ mod benchmarks {
         let origin = Position::new(3, 20);
         let destination = Position::new(18, 1);
 
-        // 52,007 ns/iter (+/- 5,858)
+        // (63c250b) 52,007 ns/iter (+/- 5,858)
         // (e4ab2b1) 106,758 ns/iter (+/- 15,305), only slightly slower than A* on this test case
         b.iter(|| {
             bfs(&origin, |p| p.neighbours(&map).into_iter().into_iter().filter(|x| map.tile_at(x).is_walkable()), |p| *p == destination)

@@ -1,3 +1,4 @@
+use std::cmp;
 use std::collections::HashSet;
 use std::fmt;
 
@@ -56,9 +57,19 @@ impl Position {
         }
     }
 
-    pub fn manhattan_distance_to(&self, other: &Position) -> u32 {
-        // So much typecasting that I don't even
-        ((self.x as i32 - other.x as i32).abs() + (self.y as i32 - other.y as i32).abs()) as u32
+    pub fn manhattan_distance_to<T: HasDimensions>(&self, other: &Position, limits: &T) -> u32 {
+        let (x1, x2) = (self.x as i32, other.x as i32);
+        let (y1, y2) = (self.y as i32, other.y as i32);
+
+        // "Regular" manhattan distance
+        // ((x1 - x2).abs() + (y1 - y2).abs()) as u32
+
+        let (w, h) = (limits.width() as i32 + 1, limits.height() as i32 + 1);
+        let n = limits.height() as i32 + 1;
+        let m = limits.width() as i32 + 1;
+
+        // Manhattan distance for wrapping grid
+        (cmp::min((x1 - x2).abs(), n - 1 - (x1 - x2).abs()) + cmp::min((y1 - y2).abs(), m - 1 - (y1 - y2).abs())) as u32
     }
 
     pub fn direction_to(&self, other: &Position) -> Option<Direction> {
@@ -143,13 +154,23 @@ impl fmt::Display for Position {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json;
+    use game::Map;
+
+    const DEFAULT_MAP: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|....|................|....|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|....|.||....||....||.|....|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|....|.......||.......|....|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
 
     #[test]
     fn can_calculate_manhattan_distance() {
-        assert_eq!(50, Position::new(25, 25).manhattan_distance_to(&Position::new(0, 0)));
+        let map: Map = serde_json::from_str(DEFAULT_MAP).unwrap();
 
-        assert_eq!(10, Position::new(10, 12).manhattan_distance_to(&Position::new(14, 18)));
-        assert_eq!(10, Position::new(14, 18).manhattan_distance_to(&Position::new(10, 12)));
-        assert_eq!(10, Position::new(18, 14).manhattan_distance_to(&Position::new(12, 10)));
+        // Non-wrapping
+        assert_eq!(10, Position::new(10, 12).manhattan_distance_to(&Position::new(14, 18), &map));
+        assert_eq!(10, Position::new(14, 18).manhattan_distance_to(&Position::new(10, 12), &map));
+        assert_eq!(10, Position::new(18, 14).manhattan_distance_to(&Position::new(12, 10), &map));
+
+        // Wrapping
+        assert_eq!(1, Position::new(0, 0).manhattan_distance_to(&Position::new(0, 27), &map));
+        assert_eq!(9, Position::new(25, 25).manhattan_distance_to(&Position::new(0, 0), &map));
+        assert_eq!(9, Position::new(0, 0).manhattan_distance_to(&Position::new(25, 25), &map));
     }
 }
