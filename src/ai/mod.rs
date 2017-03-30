@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::rc::Rc;
 
 mod pathfinder;
 mod strategies;
@@ -11,7 +10,7 @@ use protocol;
 use traits::HasPosition;
 
 pub struct Bot {
-    map_information: Rc<game::MapInformation>, // See PathNode in pathfinder
+    map_information: game::MapInformation,
     path_graph: pathfinder::LocalPathGraph,
 
     strategies: Vec<RefCell<Box<Strategy>>>,
@@ -30,7 +29,7 @@ pub struct Bot {
 impl Bot {
     pub fn from_game_state(state: protocol::GameState) -> Bot {
         Bot {
-            map_information: Rc::new(game::MapInformation::from_map(&state.map)),
+            map_information: game::MapInformation::from_map(&state.map),
             path_graph: pathfinder::LocalPathGraph::new(&state.map),
 
             strategies: vec![

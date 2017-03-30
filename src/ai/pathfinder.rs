@@ -1,12 +1,8 @@
 use pathfinding::{astar, bfs};
-use std::borrow::Borrow;
 use std::collections::{HashMap, VecDeque};
-use std::hash::{Hash, Hasher};
-use std::rc::Rc;
 
 use common::Position;
 use game;
-use traits::HasDimensions;
 
 pub struct LocalPathGraph {
     nodes: HashMap<Position, TilePathInformation>,
@@ -74,78 +70,17 @@ impl LocalPathGraph {
     }
 }
 
-#[derive(Clone)]
-pub struct PathNode {
-    pub position: Position,
-
-    // Is Rc really needed here? cba to make it work without it atm
-    pub map_information: Rc<game::MapInformation>,
-    pub current_map_state: Rc<game::Map>,
-}
-
-impl Eq for PathNode {}
-impl PartialEq for PathNode {
-    fn eq(&self, other: &PathNode) -> bool {
-        self.position == other.position
-    }
-}
-
-impl Hash for PathNode {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.position.hash(state);
-    }
-}
-
-impl PathNode {
-    fn heuristic_to(&self, other: &PathNode) -> usize {
-        self.position.manhattan_distance_to(&other.position) as usize
-    }
-
-    fn walkable_neighbours<T: HasDimensions>(&self, limits: &T) -> Vec<PathNode> {
-        self.current_map_state
-            .neighbours(&self.position)
-            .iter()
-            .filter(|x| x.1.is_walkable())
-            .map(|x| self.position.neighbour(limits, &x.0))
-            .map(|p| PathNode {
-                position: p,
-                map_information: self.map_information.clone(),
-                current_map_state: self.current_map_state.clone(),
-            })
-            .collect()
-    }
-
-    fn neighbours<T: HasDimensions>(&self, limits: &T) -> Vec<(PathNode, usize)> {
-        self.walkable_neighbours(limits)
-            .into_iter()
-            .map(|n| (n, 1))
-            .collect()
-    }
-
-    fn neighbours_by_points<T: HasDimensions>(&self, limits: &T) -> Vec<(PathNode, usize)> {
-        self.walkable_neighbours(limits)
-            .into_iter()
-            .map(|n| {
-                // Make it twice as expensive to walk on tiles that have no pellets
-                let cost = if self.current_map_state.tile_at(&n.position).is_pellet() { 1 } else { 2 };
-                (n, cost)
-            })
-            .collect()
-    }
-}
-
 // This method uses breadth-first search to find the pellet closest to our position
-pub fn find_closest_pellet(origin: &PathNode) -> Option<Vec<Position>> {
+pub fn find_closest_pellet(map: &game::Map, origin: &Position) -> Option<Vec<Position>> {
     let path = bfs(origin
-        , |p| p.neighbours::<game::Map>(origin.current_map_state.borrow()).into_iter().map(|x| x.0) // Map away cost
-        , |p| origin.current_map_state.tile_at(&p.position).is_pellet());
+        , |p| p.neighbours(map)
+        , |p| map.tile_at(&p).is_pellet());
 
     if let Some(x) = path {
         let mut sequence: Vec<Position> = x
             .into_iter()
             .rev()
             .skip(1)
-            .map(|node| node.position)
             .collect();
 
         return Some(sequence);
@@ -154,21 +89,15 @@ pub fn find_closest_pellet(origin: &PathNode) -> Option<Vec<Position>> {
     None
 }
 
-pub fn get_shortest(from: &PathNode, to: &PathNode) -> Option<Vec<Position>> {
-    let path = astar(from, |p| p.neighbours::<game::Map>(from.current_map_state.borrow()), |p| p.heuristic_to(&to), |p| *p == *to);
+pub fn get_shortest(map: &game::Map, from: &Position, to: &Position) -> Option<Vec<Position>> {
+    let path = astar(from, |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&to) as usize, |p| *p == *to);
     prepare_response(path)
 }
 
-pub fn get_by_points(from: &PathNode, to: &PathNode) -> Option<Vec<Position>> {
-    let path = astar(from, |p| p.neighbours_by_points::<game::Map>(from.current_map_state.borrow()), |p| p.heuristic_to(&to), |p| *p == *to);
-    prepare_response(path)
-}
-
-fn prepare_response(path: Option<(Vec<PathNode>, usize)>) -> Option<Vec<Position>> {
+fn prepare_response(path: Option<(Vec<Position>, usize)>) -> Option<Vec<Position>> {
     if let Some(x) = path {
         let mut sequence: Vec<Position> = x.0
             .into_iter()
-            .map(|node| node.position)
             .collect();
 
         // "Reverse" order is easier, we pop from the end while walking
@@ -188,39 +117,24 @@ fn prepare_response(path: Option<(Vec<PathNode>, usize)>) -> Option<Vec<Position
 mod tests {
     use super::*;
     use serde_json;
-    use game::{Map, MapInformation};
+    use game::Map;
 
     const DEFAULT_MAP: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|....|................|....|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|....|.||....||....||.|....|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|....|.......||.......|....|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
 
     #[test]
     fn bfs_path_graph_should_return_same_path_as_library() {
-        let map: Rc<Map> = Rc::new(serde_json::from_str(DEFAULT_MAP).unwrap());
-        let info = Rc::new(MapInformation::from_map(&map));
+        let map: Map = serde_json::from_str(DEFAULT_MAP).unwrap();
 
-        let origin = PathNode {
-            position: Position {
-                x: 3,
-                y: 20,
-            },
-            map_information: info.clone(),
-            current_map_state: map.clone(),
-        };
+        let origin = Position::new(3, 20);
+        let destination = Position::new(18, 1);
 
-        let destination = PathNode {
-            position: Position {
-                x: 18,
-                y: 1,
-            },
-            map_information: info.clone(),
-            current_map_state: map.clone(),
-        };
+        assert_eq!(50, get_cost_from_bfs_graph(&map, &origin, &destination));
 
-        assert_eq!(50, get_cost_from_bfs_graph(&map, &origin.position, &destination.position));
-
-        let bfs_path = get_path_from_bfs_graph(&map, &origin.position, &destination.position);
+        let bfs_path = get_path_from_bfs_graph(&map, &origin, &destination);
         assert_eq!(50, bfs_path.len());
 
-        let lib_path = get_path_from_astar_lib(&origin, &destination);
+        let lib_path = get_path_from_astar_lib(&map, &origin, &destination);
+
         assert_eq!(50, lib_path.len());
 
         assert_eq!(lib_path.as_slice(), bfs_path.as_slice());
@@ -238,8 +152,8 @@ mod tests {
         graph.path_to(to).unwrap()
     }
 
-    fn get_path_from_astar_lib(from: &PathNode, to: &PathNode) -> Vec<Position> {
-        prepare_response(astar(from, |p| p.neighbours_by_points::<game::Map>(from.current_map_state.borrow()), |p| p.heuristic_to(&to), |p| *p == *to)).unwrap()
+    fn get_path_from_astar_lib(map: &Map, from: &Position, to: &Position) -> Vec<Position> {
+        prepare_response(astar(from, |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&to) as usize, |p| *p == *to)).unwrap()
     }
 }
 
@@ -254,52 +168,33 @@ mod benchmarks {
 
     const DEFAULT_MAP: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|....|................|....|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|....|.||....||....||.|....|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|....|.......||.......|....|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
 
-    fn setup_for_lib_test() -> (PathNode, PathNode) {
-        let map: Rc<Map> = Rc::new(serde_json::from_str(DEFAULT_MAP).unwrap());
-        let info = Rc::new(MapInformation::from_map(&map));
-
-        // Bench from a bit into the dead end in the bottom left of the map
-        let origin = PathNode {
-            position: Position {
-                x: 3,
-                y: 20,
-            },
-            map_information: info.clone(),
-            current_map_state: map.clone(),
-        };
-
-        // To the top right of the map
-        let destination = PathNode {
-            position: Position {
-                x: 18,
-                y: 1,
-            },
-            map_information: info.clone(),
-            current_map_state: map.clone(),
-        };
-
-        (origin, destination)
-    }
-
     #[bench]
     fn bench_lib_astar(b: &mut Bencher) {
-        let (origin, destination) = setup_for_lib_test();
+        let map: Map = serde_json::from_str(DEFAULT_MAP).unwrap();
+
+        let origin = Position::new(3, 20);
+        let destination = Position::new(18, 1);
 
         // Results from my i7 6700HQ, latest result at the top
+        // 52,840 ns/iter (+/- 10,839)
         // (4c8b02c) 86,150 ns/iter (+/- 11,872) == 0.08615, a 66.69% improvement
         // (7175dc5) 258,640 ns/iter (+/- 19,377) == 0.25864 ms
         b.iter(|| {
-            astar(&origin, |p| p.neighbours::<game::Map>(&origin.current_map_state.borrow()), |p| p.heuristic_to(&destination), |p| *p == destination)
+            astar(&origin, |p| p.neighbours(&map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&destination) as usize, |p| *p == destination)
         })
     }
 
     #[bench]
     fn bench_lib_bfs(b: &mut Bencher) {
-        let (origin, destination) = setup_for_lib_test();
+        let map: Map = serde_json::from_str(DEFAULT_MAP).unwrap();
 
-        // 106,758 ns/iter (+/- 15,305), only slightly slower than A* on this test case
+        let origin = Position::new(3, 20);
+        let destination = Position::new(18, 1);
+
+        // 52,007 ns/iter (+/- 5,858)
+        // (e4ab2b1) 106,758 ns/iter (+/- 15,305), only slightly slower than A* on this test case
         b.iter(|| {
-            bfs(&origin, |p| p.neighbours::<game::Map>(origin.current_map_state.borrow()).into_iter().map(|x| x.0), |p| *p == destination)
+            bfs(&origin, |p| p.neighbours(&map).into_iter().into_iter().filter(|x| map.tile_at(x).is_walkable()), |p| *p == destination)
         })
     }
 
