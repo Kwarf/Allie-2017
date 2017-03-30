@@ -38,9 +38,8 @@ pub struct Map {
 }
 
 impl Map {
-    #[cfg(test)]
-    pub fn tilecount(&self) -> usize {
-        self.tiles.len()
+    pub fn tiles(&self) -> &[TileType] {
+        self.tiles.as_slice()
     }
 
     pub fn tile_at(&self, position: &common::Position) -> TileType {
@@ -149,7 +148,6 @@ impl MapInformation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use itertools::Itertools;
     use serde_json;
     use std;
 

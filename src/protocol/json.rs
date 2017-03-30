@@ -110,7 +110,7 @@ mod tests {
 
     fn assert_example_map(map: &game::Map) {
         assert_eq!(28, map.width());
-        assert_eq!(868, map.tilecount());
+        assert_eq!(868, map.tiles().len());
 
         // Test tile types, randomly picked locations
         assert_eq!(game::TileType::Floor, map.tile_at(&Position::new(12, 10)));

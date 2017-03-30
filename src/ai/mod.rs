@@ -12,6 +12,8 @@ use traits::HasPosition;
 
 pub struct Bot {
     map_information: Rc<game::MapInformation>, // See PathNode in pathfinder
+    path_graph: pathfinder::LocalPathGraph,
+
     strategies: Vec<RefCell<Box<Strategy>>>,
 
     previous_strategy_type: Option<strategies::StrategyType>,
@@ -29,6 +31,8 @@ impl Bot {
     pub fn from_game_state(state: protocol::GameState) -> Bot {
         Bot {
             map_information: Rc::new(game::MapInformation::from_map(&state.map)),
+            path_graph: pathfinder::LocalPathGraph::new(&state.map),
+
             strategies: vec![
                 RefCell::new(Box::new(strategies::Avoidance::new())),
                 RefCell::new(Box::new(strategies::Hunter::new())),
@@ -49,6 +53,9 @@ impl Bot {
 
     pub fn determine_action(&mut self, state: protocol::GameState) -> Direction {
         self.tick += 1;
+
+        // Run BFS on map to get pathing information
+        self.path_graph.update_from_map(&state.map, &state.me.position());
 
         // Set some state based on what tile we landed on
         if self.expected_tile_type == game::TileType::SuperPellet {
