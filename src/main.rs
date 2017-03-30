@@ -12,6 +12,7 @@ extern crate serde_json;
 use clap::{App, Arg};
 use std::net::SocketAddrV4;
 use std::str::FromStr;
+use std::time::{Duration, Instant};
 
 mod ai;
 mod client;
@@ -93,7 +94,9 @@ fn main() {
             Message::Update { state } => {
                 match bot {
                     Some(ref mut x) => {
+                        let instant = Instant::now();
                         let action = x.determine_action(state);
+                        println!("Time to determine action: {:>10.3} ms", duration_in_ms(&instant.elapsed()));
                         client.send_action(&action);
                     },
                     None => debug_assert!(false, "Received stateupdate message while not having an initialized AI"),
@@ -103,5 +106,19 @@ fn main() {
                 // Nothing special to do here
             }
         }
+    }
+}
+
+fn duration_in_ms(duration: &Duration) -> f32 {
+    (duration.as_secs() as f32 * 1000.0) + (duration.subsec_nanos() as f32 / 1_000_000.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_convert_duration_to_ms() {
+        assert_eq!(2050.0, duration_in_ms(&Duration::new(2, 50_000_000)));
     }
 }
