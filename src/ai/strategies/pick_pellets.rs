@@ -1,11 +1,9 @@
-use ai::pathfinder::PathNode;
 use ai::strategies::StrategyType;
-use ai::{Bot, Strategy, pathfinder};
+use ai::{Bot, Strategy};
 use common::{Direction, Position};
 use game::Map;
 use protocol::GameState;
 use std::cmp;
-use std::rc::Rc;
 use traits::HasPosition;
 
 pub struct PickPellets {
@@ -34,13 +32,6 @@ impl Strategy for PickPellets {
             self.reset();
         }
 
-        let map_state = Rc::new(state.map.clone());
-        let origin_node = PathNode {
-            position: state.me.position(),
-            map_information: bot.map_information.clone(),
-            current_map_state: map_state.clone(),
-        };
-
         // If we have a destination we should probably keep walking there
         if let Some(next) = self.current_path.pop() {
             return state.me.position().direction_to(&next);
@@ -65,12 +56,7 @@ impl Strategy for PickPellets {
         let path: Option<(_, Vec<Position>)> = bot.map_information
             .turning_points()
             .into_iter()
-            .map(|pos| PathNode {
-                position: pos.clone(),
-                map_information: bot.map_information.clone(),
-                current_map_state: map_state.clone(),
-            })
-            .map(|node| pathfinder::get_shortest(&origin_node, &node))
+            .map(|p| bot.path_graph.path_to(p))
             .filter(|path| path.is_some())
             .map(|path| path.unwrap())
             .filter(|path| path.len() > 0)
