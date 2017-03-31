@@ -27,6 +27,13 @@ impl TileType {
             _ => false,
         }
     }
+
+    pub fn is_super_pellet(&self) -> bool {
+        match *self {
+            TileType::SuperPellet => true,
+            _ => false,
+        }
+    }
 }
 
 // Should really not be Clone
@@ -67,14 +74,26 @@ impl Map {
             .enumerate()
             .filter(|&(_, tile)| tile.is_pellet())
             .map(|(i, &_)| i)
-            .map(|i| {
-                let y = i as u32 / self.width;
-                common::Position {
-                    x: i as u32 - self.width * y,
-                    y: y,
-                }
-            })
+            .map(|i| self.index_to_position(i))
             .collect()
+    }
+
+    pub fn super_pellets(&self) -> HashSet<common::Position> {
+        self.tiles
+            .iter()
+            .enumerate()
+            .filter(|&(_, tile)| tile.is_super_pellet())
+            .map(|(i, &_)| i)
+            .map(|i| self.index_to_position(i))
+            .collect()
+    }
+
+    fn index_to_position(&self, index: usize) -> common::Position {
+        let y = index as u32 / self.width;
+        common::Position {
+            x: index as u32 - self.width * y,
+            y: y,
+        }
     }
 }
 
