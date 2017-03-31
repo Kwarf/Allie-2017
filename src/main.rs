@@ -27,6 +27,9 @@ use protocol::Message;
 const ARG_IP: &'static str = "ip";
 const ARG_PORT: &'static str = "port";
 
+const V_MAJOR: &'static str = env!("CARGO_PKG_VERSION_MAJOR");
+const V_MINOR: &'static str = env!("CARGO_PKG_VERSION_MINOR");
+
 fn main() {
     let arguments = App::new("Allie")
         .about("Bot for the AI competition at The Gathering 2017")
@@ -67,7 +70,7 @@ fn main() {
         client.identify_as("Allie DBG");
     }
     else {
-        client.identify_as("Allie");
+        client.identify_as(&format!("Allie {}.{}", V_MAJOR, V_MINOR));
     }
 
 

@@ -15,10 +15,10 @@ don't.
 - __Hunter__ activates when picking up a super pellet, and hunts any other bots
 that do not have pellet powers themself.
 ```
-Allie (db37c94):
+Allie (v0.5):
         Wins: 100/100 100.00%
         Score: 157/274 57.30%
-Allie (76805f5):
+Allie (v0.4):
         Wins: 0/100 0.00%
         Score: 117/274 42.70%
 ```
@@ -28,10 +28,10 @@ Some very minor improvements, mostly a combination of the previous two versions.
 The matches were very deterministic, the new version won because it got to the
 super pellet first, and then they collided.
 ```
-Allie (76805f5):
+Allie (v0.4):
         Wins: 100/100 100.00%
         Score: 197/197 100.00%
-Allie (437f008):
+Allie (v0.3):
         Wins: 0/100 0.00%
         Score: 0/197 0.00%
 ```
@@ -46,10 +46,10 @@ It's interesting to look at them, this new BFS version acts more like a vaccum,
 picking up stray points that the old one left behind, it will probably be best
 to implement a combination of the two strategies.
 ```
-Allie (437f008):
+Allie (v0.3):
         Wins: 42/100 42.00%
         Score: 130/274 47.45%
-Allie (65143ae):
+Allie (v0.2):
         Wins: 58/100 58.00%
         Score: 144/274 52.55%
 ```
@@ -61,10 +61,10 @@ against the random one.
 The score not being summed (as I wrote below) is a known bug in the server.
 It only shows the last round.
 ```
-Allie (65143ae):
+Allie (v0.2):
         Wins: 101/101 100.00%
         Score: 185/185 100.00%
-Allie (c657773):
+Allie (v0.1):
         Wins: 0/101 0.00%
         Score: 0/185 0.00%
 ```
@@ -74,7 +74,7 @@ First version that learned how to walk.. Randomly.. It felt fair to test it
 against rand0m.py. Score seems low for 100 turns for some reason, and number of
 wins adds up to more than 100 somehow.
 ```
-Allie (c657773):
+Allie (v0.1):
         Wins: 58/108 53.70%
         Score: 13/15 86.67%
 rand0m.py:
