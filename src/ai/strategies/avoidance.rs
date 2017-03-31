@@ -33,7 +33,7 @@ impl Strategy for Avoidance {
 
         let neighbouring_enemy_directions: HashSet<Direction> = neighbouring_positions
             .intersection(&enemy_positions)
-            .map(|p| state.me.position().direction_to(&p).unwrap())
+            .map(|p| state.me.position().direction_to(&state.map, &p).unwrap())
             .collect();
 
         if neighbouring_enemy_directions.len() == 0 {

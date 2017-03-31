@@ -33,7 +33,7 @@ impl Strategy for Hunter {
             });
 
         match path {
-            Some(p) => state.me.position().direction_to(&p.last().unwrap()),
+            Some(p) => state.me.position().direction_to(&state.map, &p.last().unwrap()),
             None => None,
         }
     }

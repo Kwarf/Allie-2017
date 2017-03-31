@@ -71,7 +71,21 @@ impl Position {
     }
 
     // FIXME: This has to work with tunnels/wrapping
-    pub fn direction_to(&self, other: &Position) -> Option<Direction> {
+    pub fn direction_to<T: HasDimensions>(&self, limits: &T, other: &Position) -> Option<Direction> {
+        // Assume wrapping movement if both positions are at map edge
+        if self.x == 0 && other.x == limits.width() - 1 {
+            return Some(Direction::Left);
+        }
+        else if self.x == limits.width() - 1 && other.x == 0 {
+            return Some(Direction::Right);
+        }
+        else if self.y == 0 && other.y == limits.height() - 1 {
+            return Some(Direction::Up);
+        }
+        else if self.y == limits.height() - 1 && other.y == 0 {
+            return Some(Direction::Down);
+        }
+
         if other.x < self.x {
             return Some(Direction::Left);
         }

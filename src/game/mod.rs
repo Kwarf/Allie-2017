@@ -142,7 +142,7 @@ impl MapInformation {
             let walkable_neighbours: Vec<(common::Direction, TileType)> = position.neighbours(map)
                 .into_iter()
                 .filter(|x| map_information.walkable_positions.contains(x))
-                .map(|x| (position.direction_to(&x).unwrap(), map.tile_at(&x)))
+                .map(|x| (position.direction_to(map, &x).unwrap(), map.tile_at(&x)))
                 .collect();
 
             if walkable_neighbours.len() > 2 {

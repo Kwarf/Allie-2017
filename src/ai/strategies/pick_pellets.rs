@@ -32,7 +32,7 @@ impl Strategy for PickPellets {
             .neighbours(&state.map)
             .into_iter()
             .find(|p| state.map.tile_at(&p).is_pellet()) {
-            return state.me.position().direction_to(&pos);
+            return state.me.position().direction_to(&state.map, &pos);
         }
 
         let enemy_positions: HashSet<Position> = state.enemies
@@ -56,6 +56,6 @@ impl Strategy for PickPellets {
             })
             .map(|(_, path)| path);
 
-        path.and_then(|p| state.me.position().direction_to(p.last().unwrap()))
+        path.and_then(|p| state.me.position().direction_to(&state.map, p.last().unwrap()))
     }
 }

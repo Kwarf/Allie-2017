@@ -73,13 +73,13 @@ impl Strategy for Killer {
                 None => None,
                 Some(path) => {
                     println!("I found a super pellet at {} that I can get to in {} ticks", path[0], path.len());
-                    state.me.position().direction_to(&path.last().unwrap())
+                    state.me.position().direction_to(&state.map, &path.last().unwrap())
                 },
             }
         }
 
         match path {
-            Some(p) => state.me.position().direction_to(&p.last().unwrap()),
+            Some(p) => state.me.position().direction_to(&state.map, &p.last().unwrap()),
             None => None,
         }
     }
