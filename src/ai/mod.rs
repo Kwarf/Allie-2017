@@ -34,7 +34,7 @@ impl Bot {
 
             strategies: vec![
                 RefCell::new(Box::new(strategies::Avoidance::new())),
-                RefCell::new(Box::new(strategies::Killer::new())),
+                RefCell::new(Box::new(strategies::Hunter::new())),
                 RefCell::new(Box::new(strategies::PickPellets::new())),
             ],
 

@@ -170,6 +170,10 @@ impl MapInformation {
         &self.turning_points
     }
 
+    pub fn is_turning_point(&self, position: &common::Position) -> bool {
+        self.turning_points.contains(position)
+    }
+
     pub fn closest_turning_points<T: HasDimensions>(&self, limits: &T, position: &common::Position) -> HashSet<common::Position> {
         // Return the closest (1-4) intersections
         common::Direction::hash_set_all()
