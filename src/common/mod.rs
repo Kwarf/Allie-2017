@@ -65,13 +65,12 @@ impl Position {
         // ((x1 - x2).abs() + (y1 - y2).abs()) as u32
 
         let (w, h) = (limits.width() as i32 + 1, limits.height() as i32 + 1);
-        let n = limits.height() as i32 + 1;
-        let m = limits.width() as i32 + 1;
 
         // Manhattan distance for wrapping grid
-        (cmp::min((x1 - x2).abs(), n - 1 - (x1 - x2).abs()) + cmp::min((y1 - y2).abs(), m - 1 - (y1 - y2).abs())) as u32
+        (cmp::min((x1 - x2).abs(), h - 1 - (x1 - x2).abs()) + cmp::min((y1 - y2).abs(), w - 1 - (y1 - y2).abs())) as u32
     }
 
+    // FIXME: This has to work with tunnels/wrapping
     pub fn direction_to(&self, other: &Position) -> Option<Direction> {
         if other.x < self.x {
             return Some(Direction::Left);

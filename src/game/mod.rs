@@ -114,6 +114,7 @@ pub struct MapInformation {
     intersections: HashSet<common::Position>,
     corners: HashSet<common::Position>,
     dead_ends: HashSet<common::Position>,
+    tunnels: HashSet<common::Position>,
 
     walkable_positions: HashSet<common::Position>,
 }
@@ -127,6 +128,10 @@ impl MapInformation {
             for x in 0..map.width() {
                 let pos = common::Position::new(x, y);
                 if map.tile_at(&pos).is_walkable() {
+                    if pos.x == 0 || pos.x == map.width() - 1 || pos.y == 0 || pos.y == map.height() - 1 {
+                        map_information.tunnels.insert(pos.clone());
+                    }
+
                     map_information.walkable_positions.insert(pos);
                 }
             }
@@ -144,7 +149,9 @@ impl MapInformation {
                 map_information.intersections.insert(position.clone());
                 map_information.turning_points.insert(position.clone());
             }
-            else if walkable_neighbours.len() == 2 && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0) {
+            else if walkable_neighbours.len() == 2
+                && !walkable_neighbours[0].0.is_opposite_to(&walkable_neighbours[1].0)
+                && !map_information.tunnels.contains(position) {
                 map_information.corners.insert(position.clone());
                 map_information.turning_points.insert(position.clone());
             }
@@ -161,6 +168,27 @@ impl MapInformation {
         // Return intersecions, corners and dead ends,
         // i.e. all positions where it would be sane to turn
         &self.turning_points
+    }
+
+    pub fn closest_turning_points<T: HasDimensions>(&self, limits: &T, position: &common::Position) -> HashSet<common::Position> {
+        // Return the closest (1-4) intersections
+        common::Direction::hash_set_all()
+            .iter()
+            .map(|d| {
+                let mut p = position.clone();
+                loop {
+                    p = p.adjacent(limits, &d);
+                    if self.turning_points.contains(&p) {
+                        return Some(p);
+                    }
+                    if !self.walkable_positions.contains(&p) {
+                        return None;
+                    }
+                }
+            })
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect()
     }
 }
 
@@ -279,6 +307,30 @@ mod tests {
         assert_eq!(2, info.turning_points.len());
         assert_eq!(0, info.intersections.len());
         assert_eq!(0, info.corners.len());
+    }
+
+    #[test]
+    fn tunnels_are_not_turning_points() {
+        const TESTMAP: &'static str = r#"
+{
+    "content": [
+        "|||||||",
+        "|||_|||",
+        "_______",
+        "|||_|||",
+        "|||||||"
+    ],
+    "height": 5,
+    "pelletsleft": 0,
+    "width": 7
+}"#;
+        let map: Map = serde_json::from_str(TESTMAP).unwrap();
+        let info = MapInformation::from_map(&map);
+        assert_eq!(2, info.tunnels.len());
+        assert_eq!(2, info.dead_ends.len());
+        assert_eq!(1, info.intersections.len());
+        assert_eq!(0, info.corners.len());
+        assert_eq!(3, info.turning_points.len());
     }
 
     #[test]
