@@ -39,6 +39,8 @@ pub fn connect<T: ToSocketAddrs>(addr: T) -> Option<TcpClient> {
     let stream = TcpStream::connect(addr);
 
     stream.ok().and_then(|x| {
+        x.set_nodelay(true).ok();
+
         let input_stream = x.try_clone().unwrap();
         Some(TcpClient {
             stream: x,
