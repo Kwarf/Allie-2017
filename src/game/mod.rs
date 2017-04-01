@@ -36,8 +36,7 @@ impl TileType {
     }
 }
 
-// Should really not be Clone
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Map {
     #[serde(rename = "content", deserialize_with = "json::deserialize_map_content")]
     tiles: Vec<TileType>,
