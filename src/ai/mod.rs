@@ -68,7 +68,7 @@ impl Bot {
         let action = self.strategies
             .iter()
             .map(|x| (x.borrow_mut().action(&self, &state), x))
-            .find(|&(ref d, ref a)| d.is_some());
+            .find(|&(ref d, _)| d.is_some());
 
         let decision = match action {
             Some((d, a)) => {

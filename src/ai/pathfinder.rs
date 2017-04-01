@@ -77,13 +77,11 @@ pub fn find_closest_pellet(map: &game::Map, origin: &Position) -> Option<Vec<Pos
         , |p| map.tile_at(&p).is_pellet());
 
     if let Some(x) = path {
-        let mut sequence: Vec<Position> = x
+        return Some(x
             .into_iter()
             .rev()
             .skip(1)
-            .collect();
-
-        return Some(sequence);
+            .collect())
     }
 
     None
