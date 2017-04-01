@@ -11,6 +11,7 @@ GHOSTLY_PATH = '/usr/bin/ghostly'
 ALLIE_DBG = '../target/debug/allie'
 
 # Old versions
+ALLIE_0_7 = './bin/allie_v0.7'
 ALLIE_0_6 = './bin/allie_v0.6'
 ALLIE_0_5 = './bin/allie_v0.5'
 ALLIE_0_4 = './bin/allie_v0.4'

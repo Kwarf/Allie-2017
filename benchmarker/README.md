@@ -7,6 +7,23 @@ When saving results below, use information as returned by
 `date +"%Y-%m-%d %H:%M" && git rev-parse --short HEAD` for time and versioning.
 
 # Results
+## 2017-04-01 02:52
+There's been a ton of changes from the previous benchmark run. Mainly in
+pathfinding performance. I also fixed an issue that prevented the bot from
+being able to walk through tunnels.
+
+However it often loses against the old version, this seems to be mostly due to
+entering risky dead ends and getting trapped and killed. This will hopefully
+be resolved in the next version when I implement dead-end detection.
+```
+Allie (v0.7):
+        Wins: 34/100 34.00%
+        Score: 146/274 53.28%
+Allie (v0.5):
+        Wins: 66/100 66.00%
+        Score: 128/274 46.72%
+```
+
 ## 2017-03-28 22:19
 Now has three strategies, other than the previous pellet-picking one there's:
 - __Avoidance__ activates when an enemy is standing on a tile right next to us,
