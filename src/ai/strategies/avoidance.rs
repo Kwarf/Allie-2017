@@ -1,8 +1,6 @@
-use std::collections::HashSet;
-
 use ai::Bot;
 use ai::strategies::{Strategy, StrategyType};
-use common::{Direction, Position};
+use common::Direction;
 use protocol::GameState;
 use traits::HasPosition;
 
@@ -20,31 +18,22 @@ impl Strategy for Avoidance {
     }
 
     fn action(&mut self, bot: &Bot, state: &GameState) -> Option<Direction> {
-        let neighbouring_positions: HashSet<Position> = state.me.position()
-            .neighbours(&state.map)
-            .into_iter()
-            .collect();
-
-        let enemy_positions: HashSet<Position> = state.enemies
+        state.enemies
             .iter()
             .filter(|e| !(bot.can_eat_others() && !e.is_dangerous))
-            .map(|e| e.position())
-            .collect();
-
-        let neighbouring_enemy_directions: HashSet<Direction> = neighbouring_positions
-            .intersection(&enemy_positions)
-            .map(|p| state.me.position().direction_to(&state.map, &p).unwrap())
-            .collect();
-
-        if neighbouring_enemy_directions.len() == 0 {
-            return None; // No enemies next to me
-        }
-
-        println!("Enemy next to me, running away!");
-
-        Direction::hash_set_all()
-            .difference(&neighbouring_enemy_directions)
-            .find(|d| state.map.tile_at(&state.me.position().adjacent(&state.map, d)).is_walkable())
-            .and_then(|d| Some(d.clone()))
+            .map(|e| (bot.path_graph.cost_to(&e.position()).unwrap(), e))
+            .filter(|&(c, _)| c <= 2)
+            .min_by(|&(c1, _), &(c2, _)| c1.cmp(&c2))
+            .map(|(_, e)| bot.path_graph.path_to(&e.position()).unwrap().last().unwrap().clone())
+            .and_then(|pos| {
+                let mut possible_directions = Direction::hash_set_all();
+                possible_directions.take(&state.me.position().direction_to(&state.map, &pos).unwrap());
+                Some(possible_directions)
+            })
+            .and_then(|directions| {
+                directions
+                    .into_iter()
+                    .find(|d| state.map.tile_at(&state.me.position().adjacent(&state.map, d)).is_walkable())
+            })
     }
 }
