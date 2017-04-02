@@ -43,7 +43,7 @@ impl Strategy for PickPellets {
         // As a last resort we pathfind to all intersections,
         // and pick the path that contains most pellets relative to its length
         let path: Option<Vec<Position>> = bot.map_information
-            .turning_points()
+            .intersections()
             .into_iter()
             .map(|p| bot.path_graph.path_to(p))
             .filter(|path| path.is_some())

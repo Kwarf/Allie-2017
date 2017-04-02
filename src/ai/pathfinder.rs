@@ -195,7 +195,7 @@ mod benchmarks {
         // (4c8b02c) 86,150 ns/iter (+/- 11,872) == 0.08615, a 66.69% improvement
         // (7175dc5) 258,640 ns/iter (+/- 19,377) == 0.25864 ms
         b.iter(|| {
-            astar(&origin, |p| p.neighbours(&map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&destination) as usize, |p| *p == destination)
+            astar(&origin, |p| p.neighbours(&map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&destination, &map) as usize, |p| *p == destination)
         })
     }
 

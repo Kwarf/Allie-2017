@@ -1,6 +1,6 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 
-use common;
+use common::{Direction, Position};
 use protocol::json;
 use traits::HasDimensions;
 
@@ -48,26 +48,26 @@ impl Map {
         self.tiles.as_slice()
     }
 
-    pub fn tile_at(&self, position: &common::Position) -> TileType {
+    pub fn tile_at(&self, position: &Position) -> TileType {
         self.tiles[(self.width * position.y + position.x) as usize]
     }
 
-    pub fn neighbours(&self, position: &common::Position) -> Vec<(common::Direction, TileType)> {
+    pub fn neighbours(&self, position: &Position) -> Vec<(Direction, TileType)> {
         vec![
-            (common::Direction::Left, self.tile_at(&position.adjacent(self, &common::Direction::Left))),
-            (common::Direction::Right, self.tile_at(&position.adjacent(self, &common::Direction::Right))),
-            (common::Direction::Up, self.tile_at(&position.adjacent(self, &common::Direction::Up))),
-            (common::Direction::Down, self.tile_at(&position.adjacent(self, &common::Direction::Down))),
+            (Direction::Left, self.tile_at(&position.adjacent(self, &Direction::Left))),
+            (Direction::Right, self.tile_at(&position.adjacent(self, &Direction::Right))),
+            (Direction::Up, self.tile_at(&position.adjacent(self, &Direction::Up))),
+            (Direction::Down, self.tile_at(&position.adjacent(self, &Direction::Down))),
         ]
     }
 
-    pub fn points_in_path(&self, path: &Vec<common::Position>) -> usize {
+    pub fn points_in_path(&self, path: &Vec<Position>) -> usize {
         path.iter()
             .filter(|pos| self.tile_at(pos).is_pellet())
             .count()
     }
 
-    pub fn pellets(&self) -> HashSet<common::Position> {
+    pub fn pellets(&self) -> HashSet<Position> {
         self.tiles
             .iter()
             .enumerate()
@@ -77,7 +77,7 @@ impl Map {
             .collect()
     }
 
-    pub fn super_pellets(&self) -> HashSet<common::Position> {
+    pub fn super_pellets(&self) -> HashSet<Position> {
         self.tiles
             .iter()
             .enumerate()
@@ -87,9 +87,9 @@ impl Map {
             .collect()
     }
 
-    fn index_to_position(&self, index: usize) -> common::Position {
+    fn index_to_position(&self, index: usize) -> Position {
         let y = index as u32 / self.width;
-        common::Position {
+        Position {
             x: index as u32 - self.width * y,
             y: y,
         }
@@ -108,14 +108,14 @@ impl HasDimensions for Map {
 #[derive(Default)]
 pub struct MapInformation {
     // This is essentially a combination of the three below, for convenience
-    turning_points: HashSet<common::Position>,
+    turning_points: HashSet<Position>,
 
-    intersections: HashSet<common::Position>,
-    corners: HashSet<common::Position>,
-    dead_ends: HashSet<common::Position>,
-    tunnels: HashSet<common::Position>,
+    intersections: HashSet<Position>,
+    corners: HashSet<Position>,
+    dead_ends: HashSet<Position>,
+    tunnels: HashSet<Position>,
 
-    walkable_positions: HashSet<common::Position>,
+    walkable_positions: HashSet<Position>,
 }
 
 impl MapInformation {
@@ -125,7 +125,7 @@ impl MapInformation {
         // Classify what is walkable
         for y in 0..map.height() {
             for x in 0..map.width() {
-                let pos = common::Position::new(x, y);
+                let pos = Position::new(x, y);
                 if map.tile_at(&pos).is_walkable() {
                     if pos.x == 0 || pos.x == map.width() - 1 || pos.y == 0 || pos.y == map.height() - 1 {
                         map_information.tunnels.insert(pos.clone());
@@ -138,7 +138,7 @@ impl MapInformation {
 
         // Find any intersections
         for position in &map_information.walkable_positions {
-            let walkable_neighbours: Vec<(common::Direction, TileType)> = position.neighbours(map)
+            let walkable_neighbours: Vec<(Direction, TileType)> = position.neighbours(map)
                 .into_iter()
                 .filter(|x| map_information.walkable_positions.contains(x))
                 .map(|x| (position.direction_to(map, &x).unwrap(), map.tile_at(&x)))
@@ -160,22 +160,41 @@ impl MapInformation {
             }
         }
 
+        // Classify tiles in dead ends
+        let mut candidates = VecDeque::new();
+        candidates.append(&mut map_information.dead_ends.clone().into_iter().collect());
+        while let Some(c) = candidates.pop_front() {
+            let dead_neighbours: Vec<Position> = c.neighbours(map)
+                .into_iter()
+                .filter(|p| {
+                    map.tile_at(&p).is_walkable() &&
+                    !map_information.dead_ends.contains(p) &&
+                    p.neighbours(map).iter().filter(|pn| map.tile_at(&pn).is_walkable() && !map_information.dead_ends.contains(pn)).count() < 2
+                })
+                .collect();
+
+            for n in dead_neighbours {
+                map_information.dead_ends.insert(n.clone());
+                candidates.push_back(n);
+            }
+        }
+
         map_information
     }
 
-    pub fn turning_points(&self) -> &HashSet<common::Position> {
-        // Return intersecions, corners and dead ends,
-        // i.e. all positions where it would be sane to turn
-        &self.turning_points
+    pub fn intersections(&self) -> &HashSet<Position> {
+        // Return intersecions, tiles with >2 directions to go
+        // i.e. all tiles where a decision on where to go is needed
+        &self.intersections
     }
 
-    pub fn is_turning_point(&self, position: &common::Position) -> bool {
-        self.turning_points.contains(position)
+    pub fn walkable_positions(&self) -> &HashSet<Position> {
+        &self.walkable_positions
     }
 
-    pub fn closest_turning_points<T: HasDimensions>(&self, limits: &T, position: &common::Position) -> HashSet<common::Position> {
+    pub fn closest_turning_points<T: HasDimensions>(&self, limits: &T, position: &Position) -> HashSet<Position> {
         // Return the closest (1-4) intersections
-        common::Direction::hash_set_all()
+        Direction::hash_set_all()
             .iter()
             .map(|d| {
                 let mut p = position.clone();
@@ -193,6 +212,10 @@ impl MapInformation {
             .map(|x| x.unwrap())
             .collect()
     }
+
+    pub fn dead_ends(&self) -> &HashSet<Position> {
+        &self.dead_ends
+    }
 }
 
 #[cfg(test)]
@@ -200,6 +223,13 @@ mod tests {
     use super::*;
     use serde_json;
     use std;
+
+    const DEFAULT: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|....|................|....|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|....|.||....||....||.|....|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|....|.......||.......|....|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
+    const MSPACMAN1: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|......||..........||......|","|o||||.||.||||||||.||.||||o|","|.||||.||.||||||||.||.||||.|","|..........................|","|||.||.|||||.||.|||||.||.|||","__|.||.|||||.||.|||||.||.|__","|||.||.|||||.||.|||||.||.|||","___.||.......||.......||.___","|||.|||||_||||||||_|||||.|||","__|.|||||_||||||||_|||||.|__","__|.____________________.|__","__|.|||||_|||--|||_|||||.|__","__|.|||||_|______|_|||||.|__","__|.||____|______|____||.|__","__|.||_||_|______|_||_||.|__","|||.||_||_|||--|||_||_||.|||","___.___||__________||___.___","|||.||||||||_||_||||||||.|||","__|.||||||||_||_||||||||.|__","__|.......___||___.......|__","__|.|||||.||||||||.|||||.|__","|||.|||||.||||||||.|||||.|||","|............__............|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|.||||.||....||....||.||||.|","|o||||.||.||||||||.||.||||o|","|.||||.||.||||||||.||.||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":220,"width":28}"#;
+    const MSPACMAN2: &'static str = r#"{"content":["||||||||||||||||||||||||||||","_______||..........||_______","||||||_||.||||||||.||_||||||","||||||_||.||||||||.||_||||||","|o...........||...........o|","|.|||||||.||.||.||.|||||||.|","|.|||||||.||.||.||.|||||||.|","|.||......||.||.||......||.|","|.||.||||_||....||_||||.||.|","|.||.||||_||||||||_||||.||.|","|......||_||||||||_||......|","||||||.||__________||.||||||","||||||.||_|||--|||_||.||||||","|......||_|______|_||......|","|.||||.||_|______|_||.||||.|","|.||||.___|______|___.||||.|","|...||.||_|||--|||_||.||...|","|||.||.||__________||.||.|||","__|.||.||||_||||_||||.||.|__","__|.||.||||_||||_||||.||.|__","__|.........||||.........|__","__|.|||||||.||||.|||||||.|__","|||.|||||||.||||.|||||||.|||","___....||...____...||....___","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|o..||.......||.......||..o|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":240,"width":28}"#;
+    const MSPACMAN3: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|.........||....||.........|","|.|||||||.||.||.||.|||||||.|","|o|||||||.||.||.||.|||||||o|","|.||.........||.........||.|","|.||.||.||||.||.||||.||.||.|","|....||.||||.||.||||.||....|","||||.||.||||.||.||||.||.||||","||||.||..............||.||||","_....||||_||||||||_||||...._","|.||_||||_||||||||_||||_||.|","|.||____________________||.|","|.||||_||_|||--|||_||_||||.|","|.||||_||_|______|_||_||||.|","|._____||_|______|_||_____.|","|.||_||||_|______|_||||_||.|","|.||_||||_|||--|||_||||_||.|","|.||____________________||.|","|.||||_|||||_||_|||||_||||.|","|.||||_|||||_||_|||||_||||.|","|......||....||....||......|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|o..||.......__.......||..o|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|......||....||....||......|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|......||..........||......|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
+    const MSPACMAN4: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|..........................|","|.||.||||.||||||||.||||.||.|","|o||.||||.||||||||.||||.||o|","|.||.||||.||....||.||||.||.|","|.||......||.||.||......||.|","|.||||.||.||.||.||.||.||||.|","|.||||.||.||.||.||.||.||||.|","|......||....||....||......|","|||.||||||||_||_||||||||.|||","__|.||||||||_||_||||||||.|__","__|....||__________||....|__","|||_||.||_|||--|||_||.||_|||","____||.||_|______|_||.||____","||||||.___|______|___.||||||","||||||.||_|______|_||.||||||","____||.||_|||--|||_||.||____","|||_||.||__________||.||_|||","__|....|||||_||_|||||....|__","__|.||.|||||_||_|||||.||.|__","__|.||....___||___....||.|__","__|.|||||.||_||_||.|||||.|__","|||.|||||.||_||_||.|||||.|||","|.........||____||.........|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|.||...||..........||...||.|","|o||.|||||||.||.|||||||.||o|","|.||.|||||||.||.|||||||.||.|","|............||............|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":234,"width":28}"#;
+    const PACMAN: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|..........................|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|......||....||....||......|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":240,"width":28}"#;
 
     #[test]
     fn should_be_able_to_determine_walkable_tiles() {
@@ -240,7 +270,7 @@ mod tests {
         assert_eq!(5, info.turning_points.len());
         assert_eq!(1, info.intersections.len());
         assert_eq!(0, info.corners.len());
-        assert!(info.intersections.contains(&common::Position::new(3, 3)));
+        assert!(info.intersections.contains(&Position::new(3, 3)));
     }
 
     #[test]
@@ -264,7 +294,7 @@ mod tests {
         assert_eq!(4, info.turning_points.len());
         assert_eq!(1, info.intersections.len());
         assert_eq!(0, info.corners.len());
-        assert!(info.intersections.contains(&common::Position::new(3, 2)));
+        assert!(info.intersections.contains(&Position::new(3, 2)));
     }
 
     #[test]
@@ -286,7 +316,7 @@ mod tests {
         assert_eq!(3, info.turning_points.len());
         assert_eq!(0, info.intersections.len());
         assert_eq!(1, info.corners.len());
-        assert!(info.corners.contains(&common::Position::new(2, 2)));
+        assert!(info.corners.contains(&Position::new(2, 2)));
     }
 
     #[test]
@@ -355,7 +385,73 @@ mod tests {
         let map: Map = serde_json::from_str(THREE_WAY_INTERSECTION).unwrap();
         let pellets = map.pellets();
         assert_eq!(2, pellets.len());
-        assert!(pellets.contains(&common::Position::new(1, 2)));
-        assert!(pellets.contains(&common::Position::new(3, 3)));
+        assert!(pellets.contains(&Position::new(1, 2)));
+        assert!(pellets.contains(&Position::new(3, 3)));
+    }
+
+    #[test]
+    fn can_classify_dead_ends() {
+        // 18 * 2 + 11 * 2 == 58 number of tiles that should be classified as belonging to dead ends
+        let info = MapInformation::from_map(&serde_json::from_str::<Map>(DEFAULT).unwrap());
+        assert_eq!(58, info.dead_ends().len());
+
+        // 4 tiles (unreachable)
+        let info = MapInformation::from_map(&serde_json::from_str::<Map>(MSPACMAN1).unwrap());
+        assert_eq!(4, info.dead_ends().len());
+
+        // The remaining maps have no dead ends
+        let info = MapInformation::from_map(&serde_json::from_str::<Map>(MSPACMAN2).unwrap());
+        assert_eq!(0, info.dead_ends().len());
+        let info = MapInformation::from_map(&serde_json::from_str::<Map>(MSPACMAN3).unwrap());
+        assert_eq!(0, info.dead_ends().len());
+        let info = MapInformation::from_map(&serde_json::from_str::<Map>(MSPACMAN4).unwrap());
+        assert_eq!(0, info.dead_ends().len());
+        let info = MapInformation::from_map(&serde_json::from_str::<Map>(PACMAN).unwrap());
+        assert_eq!(0, info.dead_ends().len());
+    }
+}
+
+#[cfg(all(test, feature = "benchmarking"))]
+mod benchmarks {
+    extern crate test;
+
+    use super::*;
+    use self::test::Bencher;
+    use serde_json;
+
+    const DEFAULT: &'static str = r#"{"content":["||||||||||||||||||||||||||||","|............||............|","|.||||.|||||.||.|||||.||||.|","|o||||.|||||.||.|||||.||||o|","|.||||.|||||.||.|||||.||||.|","|....|................|....|","|.||||.||.||||||||.||.||||.|","|.||||.||.||||||||.||.||||.|","|....|.||....||....||.|....|","||||||.|||||_||_|||||.||||||","_____|.|||||_||_|||||.|_____","_____|.||__________||.|_____","_____|.||_|||--|||_||.|_____","||||||.||_|______|_||.||||||","______.___|______|___.______","||||||.||_|______|_||.||||||","_____|.||_|||--|||_||.|_____","_____|.||__________||.|_____","_____|.||_||||||||_||.|_____","||||||.||_||||||||_||.||||||","|....|.......||.......|....|","|.||||.|||||.||.|||||.||||.|","|.||||.|||||.||.|||||.||||.|","|o..||.......__.......||..o|","|||.||.||.||||||||.||.||.|||","|||.||.||.||||||||.||.||.|||","|......||....||....||......|","|.||||||||||.||.||||||||||.|","|.||||||||||.||.||||||||||.|","|..........................|","||||||||||||||||||||||||||||"],"height":31,"pelletsleft":238,"width":28}"#;
+
+    #[bench]
+    fn bench_info_from_map(b: &mut Bencher) {
+        b.iter(|| {
+            test::black_box(serde_json::from_str::<Map>(DEFAULT).unwrap());
+        })
+    }
+
+    #[bench]
+    fn bench_hashset_lookup(b: &mut Bencher) {
+        let map: Map = serde_json::from_str(DEFAULT).unwrap();
+        let info = MapInformation::from_map(&map);
+
+        let walkable = Position::new(26, 21);
+        let wall = Position::new(7, 22);
+
+        b.iter(|| {
+            test::black_box(info.walkable_positions().contains(&walkable));
+            test::black_box(info.walkable_positions().contains(&wall));
+        })
+    }
+
+    #[bench]
+    fn bench_array_lookup(b: &mut Bencher) {
+        let map: Map = serde_json::from_str(DEFAULT).unwrap();
+
+        let walkable = Position::new(26, 21);
+        let wall = Position::new(7, 22);
+
+        b.iter(|| {
+            test::black_box(map.tile_at(&walkable).is_walkable());
+            test::black_box(map.tile_at(&wall).is_walkable());
+        })
     }
 }
