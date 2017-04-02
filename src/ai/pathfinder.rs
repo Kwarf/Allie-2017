@@ -79,8 +79,8 @@ pub fn find_closest_pellet(map: &game::Map, origin: &Position) -> Option<Vec<Pos
     if let Some(x) = path {
         return Some(x
             .into_iter()
-            .rev()
             .skip(1)
+            .rev()
             .collect())
     }
 

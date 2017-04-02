@@ -1,3 +1,4 @@
+use pathfinding;
 use std::collections::{HashSet, VecDeque};
 
 use common::{Direction, Position};
@@ -116,11 +117,22 @@ pub struct MapInformation {
     tunnels: HashSet<Position>,
 
     walkable_positions: HashSet<Position>,
+    size: (u32, u32),
+}
+
+impl HasDimensions for MapInformation {
+    fn width(&self) -> u32 {
+        self.size.0
+    }
+    fn height(&self) -> u32 {
+        self.size.1
+    }
 }
 
 impl MapInformation {
     pub fn from_map(map: &Map) -> MapInformation {
         let mut map_information = MapInformation::default();
+        map_information.size = (map.width(), map.height());
 
         // Classify what is walkable
         for y in 0..map.height() {
@@ -215,6 +227,19 @@ impl MapInformation {
 
     pub fn dead_ends(&self) -> &HashSet<Position> {
         &self.dead_ends
+    }
+
+    pub fn is_dead_end(&self, position: &Position) -> bool {
+        self.dead_ends.contains(position)
+    }
+
+    pub fn path_to_dead_end_exit(&self, position: &Position) -> Option<Vec<Position>> {
+        pathfinding::bfs(position, |p| p.neighbours(self).into_iter().filter(|c| self.walkable_positions.contains(&c)), |p| !self.dead_ends.contains(&p))
+            .and_then(|mut path| Some(path
+                .into_iter()
+                .skip(1)
+                .rev()
+                .collect()))
     }
 }
 
@@ -408,6 +433,20 @@ mod tests {
         assert_eq!(0, info.dead_ends().len());
         let info = MapInformation::from_map(&serde_json::from_str::<Map>(PACMAN).unwrap());
         assert_eq!(0, info.dead_ends().len());
+    }
+
+    #[test]
+    fn can_find_dead_end_exit() {
+        let info = MapInformation::from_map(&serde_json::from_str::<Map>(DEFAULT).unwrap());
+
+        let current = Position::new(3, 5);
+        let exit = Position::new(6, 1);
+        assert!(info.is_dead_end(&current));
+        assert!(!info.is_dead_end(&exit));
+
+        let path = info.path_to_dead_end_exit(&current).unwrap();
+        assert_eq!(11, path.len());
+        assert_eq!(exit, path[0]);
     }
 }
 
