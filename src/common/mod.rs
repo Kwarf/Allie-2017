@@ -6,7 +6,7 @@ pub mod rules;
 
 use traits::HasDimensions;
 
-#[derive(Clone, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Direction {
     Up,
     Down,

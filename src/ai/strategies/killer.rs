@@ -1,6 +1,7 @@
 use itertools::Itertools;
+use std::collections::HashMap;
 
-use ai::strategies::StrategyType;
+use ai::strategies::{StrategyType, weights};
 use ai::{Bot, Strategy, pathfinder};
 use common::{Direction, Position};
 use game::Map;
@@ -34,10 +35,10 @@ impl Strategy for Killer {
         StrategyType::Killer
     }
 
-    fn action(&mut self, bot: &Bot, state: &GameState) -> Option<Direction> {
+    fn action(&mut self, bot: &Bot, state: &GameState) -> HashMap<Direction, i32> {
         let remaining_super_pellets = state.map.super_pellets();
         if !bot.can_eat_others() && remaining_super_pellets.len() == 0 {
-            return None;
+            return HashMap::new();
         }
 
         let path: Option<Vec<Position>> = state.enemies
@@ -70,17 +71,23 @@ impl Strategy for Killer {
                 .and_then(|(_, pos)| bot.path_graph.path_to(&pos));
 
             return match path_to_super_pellet {
-                None => None,
+                None => HashMap::new(),
                 Some(path) => {
                     println!("I found a super pellet at {} that I can get to in {} ticks", path[0], path.len());
-                    state.me.position().direction_to(&state.map, &path.last().unwrap())
+                    let mut weights = HashMap::new();
+                    weights.insert(state.me.position().direction_to(&state.map, &path.last().unwrap()).unwrap(), weights::KILL_SPELLET);
+                    weights
                 },
             }
         }
 
         match path {
-            Some(p) => state.me.position().direction_to(&state.map, &p.last().unwrap()),
-            None => None,
+            Some(p) => {
+                let mut weights = HashMap::new();
+                weights.insert(state.me.position().direction_to(&state.map, &p.last().unwrap()).unwrap(), weights::KILL_PLAYER);
+                weights
+            },
+            None => HashMap::new(),
         }
     }
 }

@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 mod pathfinder;
 mod strategies;
@@ -15,7 +16,6 @@ pub struct Bot {
 
     strategies: Vec<RefCell<Box<Strategy>>>,
 
-    previous_strategy_type: Option<strategies::StrategyType>,
     previous_state: Option<protocol::GameState>,
 
     expected_tile_type: game::TileType,
@@ -38,7 +38,6 @@ impl Bot {
                 RefCell::new(Box::new(strategies::PickPellets::new())),
             ],
 
-            previous_strategy_type: None,
             previous_state: None,
 
             expected_tile_type: game::TileType::Floor,
@@ -65,26 +64,28 @@ impl Bot {
         // Some asserts that our internal state matches what the server sends
         debug_assert_eq!(state.me.is_dangerous, self.can_eat_others());
 
-        let action = self.strategies
+        let decision = self.strategies
             .iter()
-            .map(|x| (x.borrow_mut().action(&self, &state), x))
-            .find(|&(ref d, _)| d.is_some());
-
-        let decision = match action {
-            Some((d, a)) => {
-                let action = a.borrow();
-                if self.previous_strategy_type != Some(action.description()) {
-                    println!("Switched strategy to: {:?}", action.description());
-                    self.previous_strategy_type = Some(action.description());
+            .map(|x| x.borrow_mut().action(&self, &state))
+            // .map(|x| {
+            //     let weights = x.borrow_mut().action(&self, &state);
+            //     println!("{:?}: {:?}", x.borrow().description(), weights);
+            //     weights
+            // })
+            .fold(HashMap::new(), |mut acc, x| {
+                for (d, f) in x {
+                    let new_fitness = match acc.contains_key(&d) {
+                        true => acc[&d] + f,
+                        false => f,
+                    };
+                    acc.insert(d, new_fitness);
                 }
-
-                d.unwrap()
-            },
-            None => {
-                println!("FALLBACK MOVEMENT");
-                self.previous_direction.clone()
-            }
-        };
+                acc
+            })
+            .into_iter()
+            .max_by(|d1, d2| d1.1.cmp(&d2.1))
+            .map(|(d, _)| d)
+            .unwrap_or(self.previous_direction.clone());
 
         if self.previous_direction != decision {
             self.previous_direction = decision.clone();

@@ -1,6 +1,6 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use ai::strategies::StrategyType;
+use ai::strategies::{StrategyType, weights};
 use ai::{Bot, Strategy};
 use common::{Direction, Position};
 use protocol::GameState;
@@ -20,11 +20,14 @@ impl Strategy for PickPellets {
         StrategyType::PickPellets
     }
 
-    fn action(&mut self, bot: &Bot, state: &GameState) -> Option<Direction> {
+    fn action(&mut self, bot: &Bot, state: &GameState) -> HashMap<Direction, i32> {
+        let mut weights = HashMap::new();
+
         // We keep going straight if there's pellets there
         let position_if_continue = state.me.position().adjacent(&state.map, &bot.previous_direction);
         if state.map.tile_at(&position_if_continue).is_pellet() {
-            return Some(bot.previous_direction.clone());
+            weights.insert(bot.previous_direction.clone(), weights::PELLET);
+            return weights;
         }
 
         // If there's pellets next to us, go in that direction instead
@@ -32,7 +35,8 @@ impl Strategy for PickPellets {
             .neighbours(&state.map)
             .into_iter()
             .find(|p| state.map.tile_at(&p).is_pellet()) {
-            return state.me.position().direction_to(&state.map, &pos);
+            weights.insert(state.me.position().direction_to(&state.map, &pos).unwrap(), weights::PELLET);
+            return weights;
         }
 
         let enemy_positions: HashSet<Position> = state.enemies
@@ -51,11 +55,16 @@ impl Strategy for PickPellets {
             .filter(|path| path.len() > 0)
             .filter(|path| !path.iter().any(|pos| enemy_positions.contains(pos))) // Avoid paths with enemies on, doesn't seem that great
             .map(|path| (state.map.points_in_path(&path) as f32 / path.len() as f32, path))
+            .filter(|&(points, _)| points > 0f32)
             .max_by(|&(pp1, _), &(pp2, _)| {
                 pp1.partial_cmp(&pp2).unwrap_or(cmp::Ordering::Equal)
             })
             .map(|(_, path)| path);
 
-        path.and_then(|p| state.me.position().direction_to(&state.map, p.last().unwrap()))
+        if let Some(p) = path {
+            weights.insert(state.me.position().direction_to(&state.map, p.last().unwrap()).unwrap(), weights::PELLET);
+        }
+
+        weights
     }
 }

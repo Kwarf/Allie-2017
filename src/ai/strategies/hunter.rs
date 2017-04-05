@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use ai::{Bot, Strategy};
-use ai::strategies::StrategyType;
+use ai::strategies::{StrategyType, weights};
 use common::{Direction, Position};
 use protocol::GameState;
 use traits::HasPosition;
@@ -17,9 +19,9 @@ impl Strategy for Hunter {
         StrategyType::Hunter
     }
 
-    fn action(&mut self, bot: &Bot, state: &GameState) -> Option<Direction> {
+    fn action(&mut self, bot: &Bot, state: &GameState) -> HashMap<Direction, i32> {
         if !bot.can_eat_others() {
-            return None;
+            return HashMap::new();
         }
 
         let path: Option<Vec<Position>> = state.enemies
@@ -33,8 +35,12 @@ impl Strategy for Hunter {
             });
 
         match path {
-            Some(p) => state.me.position().direction_to(&state.map, &p.last().unwrap()),
-            None => None,
+            Some(p) => {
+                let mut weights = HashMap::new();
+                weights.insert(state.me.position().direction_to(&state.map, &p.last().unwrap()).unwrap(), weights::HUNT);
+                weights
+            },
+            None => return HashMap::new(),
         }
     }
 }
