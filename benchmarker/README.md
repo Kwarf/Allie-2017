@@ -31,6 +31,7 @@ and will move away from them, but not if we have super pellet powers and they
 don't.
 - __Hunter__ activates when picking up a super pellet, and hunts any other bots
 that do not have pellet powers themself.
+
 ```
 Allie (v0.5):
         Wins: 100/100 100.00%
