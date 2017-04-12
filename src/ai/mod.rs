@@ -64,6 +64,7 @@ impl Bot {
         // Some asserts that our internal state matches what the server sends
         debug_assert_eq!(state.me.is_dangerous, self.can_eat_others());
 
+        // println!("");
         let decision = self.strategies
             .iter()
             .map(|x| x.borrow_mut().action(&self, &state))

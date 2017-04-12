@@ -1,17 +1,21 @@
 use std::collections::{HashMap, HashSet};
 
 use ai::strategies::{StrategyType, weights};
-use ai::{Bot, Strategy};
+use ai::{Bot, Strategy, pathfinder};
 use common::{Direction, Position};
 use protocol::GameState;
 use std::cmp;
 use traits::HasPosition;
 
-pub struct PickPellets;
+pub struct PickPellets {
+    target_pellet: Option<Position>,
+}
 
 impl PickPellets {
     pub fn new() -> PickPellets {
-        PickPellets { }
+        PickPellets {
+            target_pellet: None,
+        }
     }
 }
 
@@ -39,33 +43,17 @@ impl Strategy for PickPellets {
             return weights;
         }
 
-        let enemy_positions: HashSet<Position> = state.enemies
-            .iter()
-            .map(|x| x.position())
-            .collect();
+        if self.target_pellet.is_none() || !state.map.tile_at(&self.target_pellet.clone().unwrap()).is_pellet() {
+            let path: Option<Vec<Position>> = pathfinder::find_closest_pellet(&state.map, &state.me.position());
 
-        // As a last resort we pathfind to all intersections,
-        // and pick the path that contains most pellets relative to its length
-        let path: Option<Vec<Position>> = bot.map_information
-            .intersections()
-            .into_iter()
-            .map(|p| bot.path_graph.path_to(p))
-            .filter(|path| path.is_some())
-            .map(|path| path.unwrap())
-            .filter(|path| path.len() > 0)
-            // Avoid paths with enemies on, doesn't seem that great
-            .filter(|path| !path.iter().any(|pos| enemy_positions.contains(pos)))
-            .map(|path| (state.map.points_in_path(&path) as f32 / path.len() as f32, path))
-            // Prioritize paths ending in dead ends lower
-            .map(|(points, path)| (if bot.map_information.is_dead_end(&path[0]) { points / 2f32 } else { points }, path))
-            .filter(|&(points, _)| points > 0f32)
-            .max_by(|&(pp1, _), &(pp2, _)| {
-                pp1.partial_cmp(&pp2).unwrap_or(cmp::Ordering::Equal)
-            })
-            .map(|(_, path)| path);
+            if let Some(p) = path {
+                self.target_pellet = Some(p[0].clone());
+            }
+        }
 
-        if let Some(p) = path {
-            weights.insert(state.me.position().direction_to(&state.map, p.last().unwrap()).unwrap(), weights::PELLET);
+        if let &Some(ref pos) = &self.target_pellet {
+            let path = bot.path_graph.path_to(&pos).unwrap();
+            weights.insert(state.me.position().direction_to(&state.map, path.last().unwrap()).unwrap(), weights::PELLET);
         }
 
         weights
