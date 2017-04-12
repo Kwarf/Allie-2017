@@ -44,7 +44,7 @@ impl Strategy for PickPellets {
         }
 
         if self.target_pellet.is_none() || !state.map.tile_at(&self.target_pellet.clone().unwrap()).is_pellet() {
-            let path: Option<Vec<Position>> = pathfinder::find_closest_pellet(&state.map, &state.me.position());
+            let path: Option<Vec<Position>> = pathfinder::find_closest_pellet(&state.map, &state.me.position(), &state.enemies);
 
             if let Some(p) = path {
                 self.target_pellet = Some(p[0].clone());
