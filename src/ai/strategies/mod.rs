@@ -29,9 +29,10 @@ pub trait Strategy {
 
 mod weights {
     // Tiles that may cause a collision with another player
-    pub const AVOID: i32 = -100;
+    pub const AVOID_COLLIDING: i32 = -100;
     // Path out of dead end when we're risking getting blocked in
     pub const EXIT_DEAD_END: i32 = 50;
+    // Avoid going in to dead ends if there's enemies close to us
     pub const AVOID_DEAD_END: i32 = -50;
 
     // Tiles leading in the direction of someone we are hunting

@@ -72,13 +72,10 @@ impl Bot {
             //     println!("{:?}: {:?}", x.borrow().description(), weights);
             //     weights
             // })
-            .fold(HashMap::new(), |mut acc, x| {
+            .fold(Direction::hash_set_all().into_iter().map(|d| (d, 0)).collect::<HashMap<Direction, i32>>(), |mut acc, x| {
                 for (d, f) in x {
-                    let new_fitness = match acc.contains_key(&d) {
-                        true => acc[&d] + f,
-                        false => f,
-                    };
-                    acc.insert(d, new_fitness);
+                    let w = acc.entry(d).or_insert(0);
+                    *w += f;
                 }
                 acc
             })

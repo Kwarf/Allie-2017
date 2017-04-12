@@ -53,8 +53,11 @@ impl Strategy for PickPellets {
             .filter(|path| path.is_some())
             .map(|path| path.unwrap())
             .filter(|path| path.len() > 0)
-            .filter(|path| !path.iter().any(|pos| enemy_positions.contains(pos))) // Avoid paths with enemies on, doesn't seem that great
+            // Avoid paths with enemies on, doesn't seem that great
+            .filter(|path| !path.iter().any(|pos| enemy_positions.contains(pos)))
             .map(|path| (state.map.points_in_path(&path) as f32 / path.len() as f32, path))
+            // Prioritize paths ending in dead ends lower
+            .map(|(points, path)| (if bot.map_information.is_dead_end(&path[0]) { points / 2f32 } else { points }, path))
             .filter(|&(points, _)| points > 0f32)
             .max_by(|&(pp1, _), &(pp2, _)| {
                 pp1.partial_cmp(&pp2).unwrap_or(cmp::Ordering::Equal)

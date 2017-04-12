@@ -99,7 +99,7 @@ fn main() {
                     Some(ref mut x) => {
                         let instant = Instant::now();
                         let action = x.determine_action(state);
-                        println!("Time to determine action: {:>10.3} ms", duration_in_ms(&instant.elapsed()));
+                        // println!("Time to determine action: {:>10.3} ms", duration_in_ms(&instant.elapsed()));
                         client.send_action(&action);
                     },
                     None => debug_assert!(false, "Received stateupdate message while not having an initialized AI"),
