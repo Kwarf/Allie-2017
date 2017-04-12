@@ -7,6 +7,25 @@ When saving results below, use information as returned by
 `date +"%Y-%m-%d %H:%M" && git rev-parse --short HEAD` for time and versioning.
 
 # Results
+## 2017-04-12 21:23
+Too many changes to list.. It seems much better than 0.7, but still loses to
+0.5.
+```
+Allie (0.8):
+        Wins: 100/100 100.00%
+        Score: 16071/21716 74.01%
+Allie (0.7):
+        Wins: 0/100 0.00%
+        Score: 5645/21716 25.99%
+```
+```
+Allie (0.8):
+        Wins: 7/27 25.93%
+        Score: 2292/5314 43.13%
+Allie (0.5):
+        Wins: 20/27 74.07%
+        Score: 3022/5314 56.87%
+```
 ## 2017-04-01 02:52
 There's been a ton of changes from the previous benchmark run. Mainly in
 pathfinding performance. I also fixed an issue that prevented the bot from
