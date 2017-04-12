@@ -27,7 +27,11 @@ pub trait Strategy {
     fn action(&mut self, bot: &ai::Bot, current_state: &protocol::GameState) -> HashMap<common::Direction, i32>;
 }
 
-mod weights {
+pub mod weights {
+    // Walls should have a default weight of <0
+    pub const WALL_PENALTY: i32 = -5;
+    pub const DEAD_END_PENALTY: i32 = -1;
+
     // Tiles that may cause a collision with another player
     pub const AVOID_COLLIDING: i32 = -100;
     // Path out of dead end when we're risking getting blocked in
@@ -44,5 +48,5 @@ mod weights {
     pub const KILL_PLAYER: i32 = 10;
 
     // Tiles leading to or containing pellets
-    pub const PELLET: i32 = 1;
+    pub const PELLET: i32 = 2;
 }

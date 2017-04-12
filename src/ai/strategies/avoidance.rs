@@ -52,17 +52,24 @@ impl Strategy for Avoidance {
                 .into_iter()
                 .find(|p| bot.map_information.is_dead_end(&p));
             if let Some(p) = neighbouring_dead_end {
-                let is_any_enemy_near = state.enemies
+                let nearby_enemy = state.enemies
                     .iter()
                     .filter(|e| !bot.map_information.is_dead_end(&e.position()))
-                    .find(|e| bot.path_graph.cost_to(&e.position()).unwrap_or(usize::max_value()) < 3)
-                    .is_some();
+                    .find(|e| bot.path_graph.cost_to(&e.position()).unwrap_or(usize::max_value()) < 4);
 
-                if is_any_enemy_near {
+                if let Some(e) = nearby_enemy {
                     println!("Avoiding entering dead end at {}", p);
-                    let d = state.me.position().direction_to(&state.map, &p).unwrap();
-                    let w = weights.entry(d).or_insert(0);
-                    *w += weights::AVOID_DEAD_END;
+                    {
+                        let d = state.me.position().direction_to(&state.map, &p).unwrap();
+                        let w = weights.entry(d).or_insert(0);
+                        *w += weights::AVOID_DEAD_END;
+                    }
+
+                    {
+                        let direction_to_enemy = state.me.position().direction_to(&state.map, bot.path_graph.path_to(&e.position()).unwrap().last().unwrap()).unwrap();
+                        let w = weights.entry(direction_to_enemy).or_insert(0);
+                        *w += weights::AVOID_COLLIDING;
+                    }
                 }
             }
         }
@@ -71,7 +78,7 @@ impl Strategy for Avoidance {
             .iter()
             .filter(|e| !(bot.can_eat_others() && !e.is_dangerous))
             .map(|e| (bot.path_graph.cost_to(&e.position()).unwrap(), e))
-            .filter(|&(c, _)| c <= 2)
+            .filter(|&(c, _)| c <= 3)
             .map(|(_, e)| bot.path_graph.path_to(&e.position()).unwrap().last().unwrap().clone())
             .map(|pos| state.me.position().direction_to(&state.map, &pos).unwrap());
 

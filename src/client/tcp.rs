@@ -26,6 +26,7 @@ impl AIClient for TcpClient {
     }
 
     fn response(&self) -> Result<protocol::Message, protocol::Error> {
+        // println!("\n{}\n", self.last_response);
         protocol::Message::from_str(&self.last_response)
     }
 

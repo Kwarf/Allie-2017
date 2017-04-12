@@ -48,7 +48,7 @@ def benchmark():
 
     # Start the bots, ignoring any output
     devnull = open(os.devnull, 'w')
-    subprocess.Popen([ALLIE_0_5], stdout=devnull, stderr=devnull)
+    subprocess.Popen([ALLIE_0_7], stdout=devnull, stderr=devnull)
     subprocess.Popen([ALLIE_DBG])
 
     # Wait here until the match is finished
