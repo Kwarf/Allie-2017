@@ -27,6 +27,7 @@ impl Strategy for Hunter {
         let path: Option<Vec<Position>> = state.enemies
             .iter()
             .filter(|x| !x.is_dangerous) // TODO: Also hunt people that will not be dangerous for as long as me
+            .filter(|x| bot.map_information.is_dead_end(&x.position()))
             .map(|x| bot.path_graph.path_to(&x.position()))
             .filter(|path| path.is_some())
             .map(|path| path.unwrap())
