@@ -62,6 +62,7 @@ impl Strategy for Avoidance {
             let possible_directions = Direction::hash_set_all()
                 .into_iter()
                 .filter(|d| state.map.tile_at(&state.me.position().adjacent(&state.map, &d)).is_walkable())
+                .filter(|d| bot.map_information.is_dead_end(&state.me.position()) || !bot.map_information.is_dead_end(&state.me.position().adjacent(&state.map, &d)))
                 .filter(|d| !enemy_directions.contains(d))
                 .collect::<Vec<Direction>>();
 
