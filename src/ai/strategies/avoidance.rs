@@ -106,6 +106,7 @@ mod tests {
         match message {
             Message::Update { state } => {
                 let mut bot = Bot::from_game_state(&state);
+                bot.tick = 5; // Required for avoidance
                 bot.path_graph.update_from_map(&state.map, &state.me.position());
 
                 let mut strategy = Avoidance::new();
