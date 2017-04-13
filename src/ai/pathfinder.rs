@@ -94,6 +94,11 @@ pub fn get_shortest(map: &game::Map, from: &Position, to: &Position) -> Option<V
     prepare_response(path)
 }
 
+pub fn get_shortest_no_enemies(map: &game::Map, from: &Position, to: &Position, enemies: &[Player]) -> Option<Vec<Position>> {
+    let path = astar(from, |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(x).is_walkable() && enemies.iter().find(|e| e.position() == *x).is_none()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&to, map) as usize, |p| *p == *to);
+    prepare_response(path)
+}
+
 fn prepare_response(path: Option<(Vec<Position>, usize)>) -> Option<Vec<Position>> {
     if let Some(x) = path {
         let mut sequence: Vec<Position> = x.0

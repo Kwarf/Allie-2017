@@ -46,8 +46,7 @@ impl Strategy for PickPellets {
         }
 
         if let &Some(ref pos) = &self.target_pellet {
-            return bot.path_graph
-                .path_to(&pos)
+            return pathfinder::get_shortest_no_enemies(&state.map, &state.me.position(), &pos, &state.enemies)
                 .and_then(|path| Some(path.last().unwrap().clone()))
                 .and_then(|pos| state.me.position().direction_to(&state.map, &pos));
         }
