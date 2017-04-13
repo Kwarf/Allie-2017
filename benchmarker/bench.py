@@ -11,6 +11,7 @@ GHOSTLY_PATH = '/usr/bin/ghostly'
 ALLIE_DBG = '../target/debug/allie'
 
 # Old versions
+ALLIE_1_0 = './bin/allie_v1.0'
 ALLIE_0_9 = './bin/allie_v0.9'
 ALLIE_0_8 = './bin/allie_v0.8'
 ALLIE_0_7 = './bin/allie_v0.7'
@@ -50,8 +51,8 @@ def benchmark():
 
     # Start the bots, ignoring any output
     devnull = open(os.devnull, 'w')
-    subprocess.Popen([ALLIE_DBG], stdout=devnull, stderr=devnull)
-    subprocess.Popen([ALLIE_0_8])
+    subprocess.Popen([ALLIE_0_9], stdout=devnull, stderr=devnull)
+    subprocess.Popen([ALLIE_DBG])
 
     # Wait here until the match is finished
     out, _ = server.communicate()

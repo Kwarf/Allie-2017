@@ -200,6 +200,10 @@ impl MapInformation {
         &self.intersections
     }
 
+    pub fn is_intersection(&self, position: &Position) -> bool {
+        self.intersections.contains(position)
+    }
+
     pub fn walkable_positions(&self) -> &HashSet<Position> {
         &self.walkable_positions
     }
@@ -235,7 +239,7 @@ impl MapInformation {
 
     pub fn path_to_dead_end_exit(&self, position: &Position) -> Option<Vec<Position>> {
         pathfinding::bfs(position, |p| p.neighbours(self).into_iter().filter(|c| self.walkable_positions.contains(&c)), |p| !self.dead_ends.contains(&p))
-            .and_then(|mut path| Some(path
+            .and_then(|path| Some(path
                 .into_iter()
                 .skip(1)
                 .rev()
