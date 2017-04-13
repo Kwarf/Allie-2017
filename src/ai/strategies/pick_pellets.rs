@@ -33,28 +33,6 @@ impl Strategy for PickPellets {
     }
 
     fn action(&mut self, bot: &Bot, state: &GameState) -> Option<Direction> {
-        // We keep going straight if there's pellets there
-        let position_if_continue = state.me.position().adjacent(&state.map, &bot.previous_direction);
-        if state.map.tile_at(&position_if_continue).is_pellet() {
-            if !bot.map_information.is_dead_end(&position_if_continue)
-                || !self.is_enemy_nearby(bot, state) {
-                self.target_pellet = None;
-                return Some(bot.previous_direction.clone());
-            }
-        }
-
-        // If there's pellets next to us, go in that direction instead
-        if let Some(pos) = state.me.position()
-            .neighbours(&state.map)
-            .into_iter()
-            .find(|p| state.map.tile_at(&p).is_pellet()) {
-            if !bot.map_information.is_dead_end(&pos)
-                || !self.is_enemy_nearby(bot, state) {
-                self.target_pellet = None;
-                return state.me.position().direction_to(&state.map, &pos);
-            }
-        }
-
         // Re-evaluate where we're going if some other strategy has been active
         if bot.previous_strategy_type != Some(self.description()) {
             self.target_pellet = None;
