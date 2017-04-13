@@ -27,7 +27,7 @@ pub struct Bot {
 }
 
 impl Bot {
-    pub fn from_game_state(state: protocol::GameState) -> Bot {
+    pub fn from_game_state(state: &protocol::GameState) -> Bot {
         Bot {
             map_information: game::MapInformation::from_map(&state.map),
             path_graph: pathfinder::LocalPathGraph::new(&state.map),

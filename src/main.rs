@@ -87,7 +87,7 @@ fn main() {
         match response.unwrap() {
             Message::Welcome { state } => {
                 println!("Received welcome message, initializing bot");
-                bot = Some(ai::Bot::from_game_state(state));
+                bot = Some(ai::Bot::from_game_state(&state));
             }
             Message::StartOfRound => {
                 if let Some(ref mut x) = bot {

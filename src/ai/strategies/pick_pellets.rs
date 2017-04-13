@@ -14,6 +14,14 @@ impl PickPellets {
             target_pellet: None,
         }
     }
+
+    fn is_enemy_nearby(&self, bot: &Bot, state: &GameState) -> bool {
+        state.enemies
+            .iter()
+            .filter(|e| !bot.map_information.is_dead_end(&e.position()))
+            .find(|e| bot.path_graph.cost_to(&e.position()).unwrap_or(usize::max_value()) <= 3)
+            .is_some()
+    }
 }
 
 impl Strategy for PickPellets {
@@ -25,7 +33,10 @@ impl Strategy for PickPellets {
         // We keep going straight if there's pellets there
         let position_if_continue = state.me.position().adjacent(&state.map, &bot.previous_direction);
         if state.map.tile_at(&position_if_continue).is_pellet() {
-            return Some(bot.previous_direction.clone());
+            if !bot.map_information.is_dead_end(&position_if_continue)
+                || !self.is_enemy_nearby(bot, state) {
+                return Some(bot.previous_direction.clone());
+            }
         }
 
         // If there's pellets next to us, go in that direction instead
@@ -33,7 +44,10 @@ impl Strategy for PickPellets {
             .neighbours(&state.map)
             .into_iter()
             .find(|p| state.map.tile_at(&p).is_pellet()) {
-            return state.me.position().direction_to(&state.map, &pos);
+            if !bot.map_information.is_dead_end(&pos)
+                || !self.is_enemy_nearby(bot, state) {
+                return state.me.position().direction_to(&state.map, &pos);
+            }
         }
 
         if self.target_pellet.is_none() || !state.map.tile_at(&self.target_pellet.clone().unwrap()).is_pellet() {

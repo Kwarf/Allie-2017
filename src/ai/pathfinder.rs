@@ -89,6 +89,12 @@ pub fn find_closest_pellet(map: &game::Map, origin: &Position, enemies: &[Player
     None
 }
 
+pub fn distance_to_closest_pellet(map: &game::Map, origin: &Position, enemies: &[Player]) -> usize {
+    find_closest_pellet(map, origin, enemies)
+        .map(|path| path.len())
+        .unwrap_or(usize::max_value())
+}
+
 pub fn get_shortest(map: &game::Map, from: &Position, to: &Position) -> Option<Vec<Position>> {
     let path = astar(from, |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(x).is_walkable()).map(|x| (x, 1)), |p| p.manhattan_distance_to(&to, map) as usize, |p| *p == *to);
     prepare_response(path)
