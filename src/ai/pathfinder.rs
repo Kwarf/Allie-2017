@@ -73,10 +73,11 @@ impl LocalPathGraph {
 }
 
 // This method uses breadth-first search to find the pellet closest to our position
-pub fn find_closest_pellet(map: &game::Map, origin: &Position, enemies: &[Player]) -> Option<Vec<Position>> {
+pub fn find_closest_pellet<F>(map: &game::Map, origin: &Position, enemies: &[Player], extra_filter: F) -> Option<Vec<Position>>
+    where F: Fn(&Position) -> bool {
     let path = bfs(origin
-        , |p| p.neighbours(map).into_iter().filter(|x| enemies.iter().find(|e| e.position() == *x).is_none())
-        , |p| map.tile_at(&p).is_pellet());
+        , |p| p.neighbours(map).into_iter().filter(|x| map.tile_at(&x).is_walkable() && enemies.iter().find(|e| e.position() == *x).is_none() && extra_filter(x))
+        , |p| map.tile_at(&p).is_pellet() && extra_filter(p));
 
     if let Some(x) = path {
         return Some(x
@@ -89,8 +90,9 @@ pub fn find_closest_pellet(map: &game::Map, origin: &Position, enemies: &[Player
     None
 }
 
-pub fn distance_to_closest_pellet(map: &game::Map, origin: &Position, enemies: &[Player]) -> usize {
-    find_closest_pellet(map, origin, enemies)
+pub fn distance_to_closest_pellet<F>(map: &game::Map, origin: &Position, enemies: &[Player], extra_filter: F) -> usize
+    where F: Fn(&Position) -> bool {
+    find_closest_pellet(map, origin, enemies, extra_filter)
         .map(|path| path.len())
         .unwrap_or(usize::max_value())
 }

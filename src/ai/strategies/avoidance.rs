@@ -70,7 +70,7 @@ impl Strategy for Avoidance {
                 .iter()
                 .map(|d| {
                     let p = state.me.position().adjacent(&state.map, &d);
-                    let dtp = pathfinder::distance_to_closest_pellet(&state.map, &p, &state.enemies);
+                    let dtp = pathfinder::distance_to_closest_pellet(&state.map, &p, &state.enemies, |p| !bot.map_information.is_dead_end(p));
                     (dtp, d)
                 })
                 .min_by(|&(d1, _), &(d2, _)| d1.cmp(&d2))
