@@ -6,11 +6,15 @@ use common::Direction;
 use protocol::GameState;
 use traits::HasPosition;
 
-pub struct Avoidance;
+pub struct Avoidance {
+    turn: u32,
+}
 
 impl Avoidance {
     pub fn new() -> Avoidance {
-        Avoidance { }
+        Avoidance {
+            turn: 0,
+        }
     }
 }
 
@@ -72,6 +76,12 @@ impl Strategy for Avoidance {
                     }
                 }
             }
+        }
+
+        // This is so that we get the hell out of spawn
+        self.turn += 1;
+        if self.turn < 4 {
+            return weights;
         }
 
         let directions_to_avoid = state.enemies
