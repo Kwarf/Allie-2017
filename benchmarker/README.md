@@ -7,6 +7,35 @@ When saving results below, use information as returned by
 `date +"%Y-%m-%d %H:%M" && git rev-parse --short HEAD` for time and versioning.
 
 # Results
+## 2017-04-13 21:36
+Note that this version can occationally get stuck when in PickPellets, going back
+and forth between the same two positions, I should investigate why. It's fairly
+bad if it happens.
+```
+Allie (v1.1):
+        Wins: 10/25 40.00%
+        Score: 2592/5632 46.02%
+Allie (v0.9):
+        Wins: 15/25 60.00%
+        Score: 3040/5632 53.98%
+```
+```
+Allie (v1.1):
+        Wins: 21/25 84.00%
+        Score: 3054/5656 54.00%
+Allie (v0.7):
+        Wins: 4/25 16.00%
+        Score: 2602/5656 46.00%
+```
+```
+Allie (v1.1):
+        Wins: 20/26 76.92%
+        Score: 2614/4759 54.93%
+Allie (v0.5):
+        Wins: 6/26 23.08%
+        Score: 2145/4759 45.07%
+```
+
 ## 2017-04-13 14:05
 Went back to only considering the strategy with the highest priority.
 Considering all and applying weights in a bunch of directions got messy, it was
