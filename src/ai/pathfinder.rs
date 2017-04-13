@@ -3,6 +3,8 @@ use std::collections::{HashMap, VecDeque};
 
 use common::Position;
 use game;
+use protocol::Player;
+use traits::HasPosition;
 
 pub struct LocalPathGraph {
     nodes: HashMap<Position, TilePathInformation>,
@@ -71,9 +73,9 @@ impl LocalPathGraph {
 }
 
 // This method uses breadth-first search to find the pellet closest to our position
-pub fn find_closest_pellet(map: &game::Map, origin: &Position) -> Option<Vec<Position>> {
+pub fn find_closest_pellet(map: &game::Map, origin: &Position, enemies: &[Player]) -> Option<Vec<Position>> {
     let path = bfs(origin
-        , |p| p.neighbours(map)
+        , |p| p.neighbours(map).into_iter().filter(|x| enemies.iter().find(|e| e.position() == *x).is_none())
         , |p| map.tile_at(&p).is_pellet());
 
     if let Some(x) = path {

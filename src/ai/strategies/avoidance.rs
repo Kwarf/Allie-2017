@@ -22,7 +22,7 @@ impl Strategy for Avoidance {
             .iter()
             .filter(|e| !(bot.can_eat_others() && !e.is_dangerous))
             .map(|e| (bot.path_graph.cost_to(&e.position()).unwrap(), e))
-            .filter(|&(c, _)| c <= 2)
+            .filter(|&(c, _)| c <= 3)
             .min_by(|&(c1, _), &(c2, _)| c1.cmp(&c2))
             .map(|(_, e)| bot.path_graph.path_to(&e.position()).unwrap().last().unwrap().clone())
             .and_then(|pos| {
