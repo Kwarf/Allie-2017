@@ -7,6 +7,49 @@ When saving results below, use information as returned by
 `date +"%Y-%m-%d %H:%M" && git rev-parse --short HEAD` for time and versioning.
 
 # Results
+## 2017-04-13 14:05
+Went back to only considering the strategy with the highest priority.
+Considering all and applying weights in a bunch of directions got messy, it was
+hard to see what was happening and why.
+
+Gets in deadlocks in spawn when run against v0.8, since it's not possible to get
+out without getting "too close" to other bots.
+```
+Allie (v0.9):
+        Wins: 12/26 46.15%
+        Score: 2820/5703 49.45%
+Allie (v0.7):
+        Wins: 14/26 53.85%
+        Score: 2883/5703 50.55%
+```
+```
+Allie (v0.9):
+        Wins: 15/25 60.00%
+        Score: 3461/5961 58.06%
+Allie (v0.5):
+        Wins: 10/25 40.00%
+        Score: 2500/5961 41.94%
+```
+## 2017-04-12 21:23
+Too many changes to list.. It seems much better than 0.7, but still loses to
+0.5.
+```
+Allie (0.8):
+        Wins: 100/100 100.00%
+        Score: 16071/21716 74.01%
+Allie (0.7):
+        Wins: 0/100 0.00%
+        Score: 5645/21716 25.99%
+```
+```
+Allie (0.8):
+        Wins: 7/27 25.93%
+        Score: 2292/5314 43.13%
+Allie (0.5):
+        Wins: 20/27 74.07%
+        Score: 3022/5314 56.87%
+```
+
 ## 2017-04-01 02:52
 There's been a ton of changes from the previous benchmark run. Mainly in
 pathfinding performance. I also fixed an issue that prevented the bot from

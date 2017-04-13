@@ -11,6 +11,8 @@ GHOSTLY_PATH = '/usr/bin/ghostly'
 ALLIE_DBG = '../target/debug/allie'
 
 # Old versions
+ALLIE_0_9 = './bin/allie_v0.9'
+ALLIE_0_8 = './bin/allie_v0.8'
 ALLIE_0_7 = './bin/allie_v0.7'
 ALLIE_0_6 = './bin/allie_v0.6'
 ALLIE_0_5 = './bin/allie_v0.5'
@@ -21,7 +23,7 @@ ALLIE_0_1 = './bin/allie_v0.1'
 
 RESULT_RE = re.compile(r'^name:(?P<name>[^;]+);wins:(?P<wins>\d+);score:(?P<score>\d+)$')
 
-ROUNDS = 100
+ROUNDS = 25
 
 Score = collections.namedtuple('Score', ['wins', 'score'])
 
@@ -48,8 +50,8 @@ def benchmark():
 
     # Start the bots, ignoring any output
     devnull = open(os.devnull, 'w')
-    subprocess.Popen([ALLIE_0_5], stdout=devnull, stderr=devnull)
-    subprocess.Popen([ALLIE_DBG])
+    subprocess.Popen([ALLIE_DBG], stdout=devnull, stderr=devnull)
+    subprocess.Popen([ALLIE_0_8])
 
     # Wait here until the match is finished
     out, _ = server.communicate()
