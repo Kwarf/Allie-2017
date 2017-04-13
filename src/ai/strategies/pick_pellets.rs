@@ -30,8 +30,8 @@ impl Strategy for PickPellets {
         // We keep going straight if there's pellets there
         let position_if_continue = state.me.position().adjacent(&state.map, &bot.previous_direction);
         if state.map.tile_at(&position_if_continue).is_pellet() {
-            weights.insert(bot.previous_direction.clone(), weights::PELLET);
-            return weights;
+            let w = weights.entry(bot.previous_direction.clone()).or_insert(0);
+            *w += weights::PELLET;
         }
 
         // If there's pellets next to us, go in that direction instead
@@ -39,8 +39,8 @@ impl Strategy for PickPellets {
             .neighbours(&state.map)
             .into_iter()
             .find(|p| state.map.tile_at(&p).is_pellet()) {
-            weights.insert(state.me.position().direction_to(&state.map, &pos).unwrap(), weights::PELLET);
-            return weights;
+            let w = weights.entry(state.me.position().direction_to(&state.map, &pos).unwrap().clone()).or_insert(0);
+            *w += weights::PELLET;
         }
 
         if self.target_pellet.is_none() || !state.map.tile_at(&self.target_pellet.clone().unwrap()).is_pellet() {
@@ -53,7 +53,8 @@ impl Strategy for PickPellets {
 
         if let &Some(ref pos) = &self.target_pellet {
             let path = bot.path_graph.path_to(&pos).unwrap();
-            weights.insert(state.me.position().direction_to(&state.map, path.last().unwrap()).unwrap(), weights::PELLET);
+            let w = weights.entry(state.me.position().direction_to(&state.map, path.last().unwrap()).unwrap().clone()).or_insert(0);
+            *w += weights::PELLET;
         }
 
         weights
