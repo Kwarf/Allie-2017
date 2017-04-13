@@ -45,6 +45,10 @@ impl Strategy for Avoidance {
             }
         }
 
+        if bot.tick < 5 {
+            return None;
+        }
+
         let directions_to_avoid = state.enemies
             .iter()
             .filter(|e| !(bot.can_eat_others() && !e.is_dangerous))
