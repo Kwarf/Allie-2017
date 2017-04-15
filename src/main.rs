@@ -27,9 +27,6 @@ use protocol::Message;
 const ARG_IP: &'static str = "ip";
 const ARG_PORT: &'static str = "port";
 
-const V_MAJOR: &'static str = env!("CARGO_PKG_VERSION_MAJOR");
-const V_MINOR: &'static str = env!("CARGO_PKG_VERSION_MINOR");
-
 fn main() {
     let arguments = App::new("Allie")
         .about("Bot for the AI competition at The Gathering 2017")
@@ -70,7 +67,7 @@ fn main() {
         client.identify_as("Allie DBG");
     }
     else {
-        client.identify_as(&format!("Allie {}.{}", V_MAJOR, V_MINOR));
+        client.identify_as("Allie");
     }
 
 
@@ -86,7 +83,6 @@ fn main() {
 
         match response.unwrap() {
             Message::Welcome { state } => {
-                println!("Received welcome message, initializing bot");
                 bot = Some(ai::Bot::from_game_state(&state));
             }
             Message::StartOfRound => {
@@ -97,9 +93,9 @@ fn main() {
             Message::Update { state } => {
                 match bot {
                     Some(ref mut x) => {
-                        let instant = Instant::now();
+                        // let instant = Instant::now();
                         let action = x.determine_action(state);
-                        println!("Time to determine action: {:>10.3} ms", duration_in_ms(&instant.elapsed()));
+                        // println!("Time to determine action: {:>10.3} ms", duration_in_ms(&instant.elapsed()));
                         client.send_action(&action);
                     },
                     None => debug_assert!(false, "Received stateupdate message while not having an initialized AI"),

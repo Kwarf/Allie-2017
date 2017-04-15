@@ -74,7 +74,7 @@ impl Bot {
             Some((d, a)) => {
                 let action = a.borrow();
                 if self.previous_strategy_type != Some(action.description()) {
-                    println!("Switched strategy to: {:?}", action.description());
+                    // println!("Switched strategy to: {:?}", action.description());
                     self.previous_strategy_type = Some(action.description());
                 }
 

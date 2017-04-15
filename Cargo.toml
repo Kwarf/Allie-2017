@@ -1,6 +1,6 @@
 [package]
 name = "allie"
-version = "1.1.0"
+version = "1.2.0"
 authors = ["Jimmy 'Kwarf' Bergström <thekwarf@gmail.com>"]
 license = "MIT"
 
