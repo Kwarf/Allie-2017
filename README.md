@@ -1,10 +1,12 @@
-# How to run (for martin)
-The binary should be at the root of the archive, just run it and it should
-connect to 127.0.0.1:54321 automatically. For different IP/port, see
-`./allie --help`.
+# Allie (2017)
+This is a bot that I made for the
+[AI competition](http://competitions.gathering.org/competitions/creative/kunstlig-intelligens) at
+[The Gathering 2017](https://www.gathering.org/tg17/).
 
-It's statically linked so it shouldn't require anything special to be installed.
+I [placed 5th](https://files.scene.org/view/parties/2017/thegathering17/results.txt) out of 15.
 
-# How to compile
+The code is messy, so don't use this as a reference for learning Rust or anything like that.
+
+## How to compile
 Just run `cargo build --release`, tested on rustc 1.16.0 (stable) and
 1.18.0-nightly (c58c928e6 2017-04-11).
